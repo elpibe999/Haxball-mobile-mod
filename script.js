@@ -1,6 +1,6 @@
 /**
  * InjecThor Native Mobile Emulator + Haxball Custom Photo Mod
- * Custom Mobile UI, Centered Layouts, Custom HUD Editor, Keybinds, & Image Overlay Fixes
+ * Mobile UI Centering, Settings > Input HUD Integration, Always-Visible Credits Tag
  * Author: Kartt
  */
 
@@ -47,14 +47,14 @@
     isHudEditMode: false
   };
 
-  // --- 2. MOBILE CSS STYLES INJECTION (CENTERING & DARK GRAY BACKGROUND) ---
+  // --- 2. GLOBAL CSS STYLES (CENTERING & DARK GRAY BACKGROUND) ---
   function injectMobileUIStyles() {
     if (document.getElementById('hax-mobile-responsive-styles')) return;
 
     const style = document.createElement('style');
     style.id = 'hax-mobile-responsive-styles';
     style.innerHTML = `
-      /* Dark Gray Background & Global Centering */
+      /* Dark Gray Background & True Viewport Centering */
       html, body {
         background-color: #1a1d24 !important;
         color: #e2e8f0 !important;
@@ -64,11 +64,11 @@
         touch-action: none !important;
         user-select: none !important;
         -webkit-user-select: none !important;
+        width: 100vw !important;
+        height: 100vh !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        min-height: 100vh !important;
-        width: 100vw !important;
         font-family: system-ui, -apple-system, sans-serif !important;
       }
 
@@ -79,20 +79,20 @@
         font-size: 14px !important;
       }
 
-      /* Base dialog/window container centering */
-      .game-frame, .dialog, .box, .window, [class*="game-"], [class*="dialog"], [class*="view"] {
-        max-width: 95vw !important;
-        margin: auto !important;
-        border-radius: 12px !important;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6) !important;
+      /* Main container wrapper centering force */
+      body > div, .game-frame, .dialog, .box, .window, [class*="game-"], [class*="dialog"], [class*="view"] {
+        box-sizing: border-box !important;
       }
 
       /* --- NICKNAME / LOGIN SCREEN --- */
       .nickname-view, [class*="nickname"] {
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
         width: 90vw !important;
         max-width: 360px !important;
         padding: 20px !important;
-        box-sizing: border-box !important;
         background: #242832 !important;
         border: 1px solid #333947 !important;
         border-radius: 14px !important;
@@ -100,7 +100,7 @@
         flex-direction: column !important;
         align-items: center !important;
         justify-content: center !important;
-        position: relative !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.6) !important;
       }
 
       .nickname-view input, [class*="nickname"] input {
@@ -109,7 +109,6 @@
         font-size: 16px !important;
         margin-bottom: 12px !important;
         padding: 8px 14px !important;
-        box-sizing: border-box !important;
         border-radius: 8px !important;
         background: #14161d !important;
         color: #fff !important;
@@ -125,36 +124,24 @@
         background: #3b82f6 !important;
         color: white !important;
         border: none !important;
-        cursor: pointer !important;
       }
 
-      /* Bottom credit tag on login */
-      .kartt-credit-tag {
-        position: fixed !important;
-        bottom: 12px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        color: #94a3b8 !important;
-        font-size: 13px !important;
-        font-weight: bold !important;
-        letter-spacing: 0.5px !important;
-        z-index: 9999 !important;
-        pointer-events: none !important;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important;
-      }
-
-      /* --- ROOM LIST VIEW --- */
+      /* --- ROOM LIST / SERVER MENU (STRICTLY CENTERED) --- */
       .roomlist-view, [class*="roomlist"] {
-        width: 95vw !important;
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 94vw !important;
         height: 85vh !important;
         max-width: 720px !important;
-        margin: auto !important;
         background: #242832 !important;
         border: 1px solid #333947 !important;
+        border-radius: 12px !important;
         padding: 12px !important;
-        box-sizing: border-box !important;
         display: flex !important;
         flex-direction: column !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.6) !important;
       }
 
       .roomlist-view table, [class*="roomlist"] table {
@@ -163,7 +150,7 @@
       }
 
       .roomlist-view button, [class*="roomlist"] button {
-        min-height: 42px !important;
+        min-height: 40px !important;
         font-size: 13px !important;
         font-weight: bold !important;
         border-radius: 8px !important;
@@ -171,23 +158,53 @@
 
       /* --- CREATE ROOM MODAL --- */
       .create-room-view, [class*="create-room"], [class*="createRoom"] {
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
         width: 90vw !important;
         max-width: 380px !important;
         background: #242832 !important;
         padding: 16px !important;
-        box-sizing: border-box !important;
-        margin: auto !important;
+        border: 1px solid #333947 !important;
+        border-radius: 12px !important;
       }
 
       /* --- IN-ROOM LOBBY VIEW --- */
       .room-view, [class*="room-view"] {
-        width: 98vw !important;
-        height: 94vh !important;
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 96vw !important;
+        height: 92vh !important;
         max-width: 900px !important;
-        margin: auto !important;
         background: #242832 !important;
+        border: 1px solid #333947 !important;
+        border-radius: 12px !important;
         padding: 8px !important;
-        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+
+      /* --- ALWAYS VISIBLE CREDITS TAG --- */
+      .kartt-credit-tag {
+        position: fixed !important;
+        bottom: 8px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        color: #94a3b8 !important;
+        font-size: 12px !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.8px !important;
+        z-index: 9999999 !important;
+        pointer-events: none !important;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.9) !important;
+        text-transform: uppercase !important;
+        background: rgba(15, 23, 42, 0.6) !important;
+        padding: 3px 10px !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
       }
 
       /* --- GAME CANVAS --- */
@@ -203,16 +220,16 @@
     document.head.appendChild(style);
   }
 
-  // Inject "Haxball Mobile By Kartt" credit at login
-  function injectLoginCredits() {
-    if (document.getElementById('kartt-login-credit')) return;
+  // Persistent credits text across ALL screens
+  function injectAlwaysVisibleCredits() {
+    if (document.getElementById('kartt-global-credit')) return;
     const credit = document.createElement('div');
-    credit.id = 'kartt-login-credit';
+    credit.id = 'kartt-global-credit';
     credit.className = 'kartt-credit-tag';
     credit.innerText = "Haxball Mobile By Kartt";
 
     function mountCredit() {
-      if (document.body && !document.getElementById('kartt-login-credit')) {
+      if (document.body && !document.getElementById('kartt-global-credit')) {
         document.body.appendChild(credit);
       }
     }
@@ -317,14 +334,12 @@
       } catch (e) {}
     });
 
-    // Map action to user configurable key
     let targetCode = userSettings.keyKick;
     if (action === 'Up') targetCode = userSettings.keyUp;
     if (action === 'Down') targetCode = userSettings.keyDown;
     if (action === 'Left') targetCode = userSettings.keyLeft;
     if (action === 'Right') targetCode = userSettings.keyRight;
 
-    // Convert code string (e.g. 'KeyW') to key details
     let keyChar = targetCode.replace('Key', '').replace('Digit', '');
     if (targetCode === 'Space') keyChar = ' ';
     if (targetCode.startsWith('Arrow')) keyChar = targetCode;
@@ -332,7 +347,6 @@
     targets.forEach(target => {
       if (!target) return;
       sendKeyEventToTarget(target, type, keyChar, targetCode, 0);
-      // Fallback dispatch standard arrow/WASD
       if (action === 'Up') sendKeyEventToTarget(target, type, 'ArrowUp', 'ArrowUp', 38);
       if (action === 'Down') sendKeyEventToTarget(target, type, 'ArrowDown', 'ArrowDown', 40);
       if (action === 'Left') sendKeyEventToTarget(target, type, 'ArrowLeft', 'ArrowLeft', 37);
@@ -356,7 +370,7 @@
     }
   }
 
-  // --- 5. VIRTUAL JOYSTICK & KICK BUTTON (WITH HUD EDITOR & DYNAMIC VISIBILITY) ---
+  // --- 5. VIRTUAL JOYSTICK & KICK BUTTON ---
   function createVirtualControls() {
     if (document.getElementById('hax-touch-controls')) return;
 
@@ -367,7 +381,7 @@
       inset: 0;
       pointer-events: none;
       z-index: 999990;
-      display: none; /* Initially hidden until in room/game */
+      display: none;
       user-select: none;
       -webkit-user-select: none;
       touch-action: none;
@@ -446,7 +460,6 @@
     if (document.body) mountControls();
     else window.addEventListener('DOMContentLoaded', mountControls);
 
-    // Joystick Touch Logic
     let activeTouchId = null;
     let baseRect = null;
 
@@ -487,7 +500,6 @@
       setMovementState('Down', false);
     }
 
-    // Touch events for Joystick
     joystickBase.addEventListener('touchstart', (e) => {
       if (modState.isHudEditMode) return;
       e.preventDefault();
@@ -520,7 +532,6 @@
     window.addEventListener('touchend', endTouchHandler);
     window.addEventListener('touchcancel', endTouchHandler);
 
-    // Kick Button Handlers
     const pressKick = (e) => {
       if (modState.isHudEditMode) return;
       if (e) e.preventDefault();
@@ -541,12 +552,10 @@
     kickBtn.addEventListener('touchend', releaseKick, { passive: false });
     kickBtn.addEventListener('touchcancel', releaseKick, { passive: false });
 
-    // HUD Dragging / Customization Logic
     setupHudDrag(joystickBase, 'joystick');
     setupHudDrag(kickBtn, 'kick');
   }
 
-  // Drag & drop logic for HUD modification
   function setupHudDrag(element, type) {
     let isDragging = false;
     let startX, startY, origX, origY;
@@ -592,16 +601,15 @@
     window.addEventListener('touchcancel', stopDrag);
   }
 
-  // Detect whether player is in a room/game to show/hide touch controls
   function updateHudVisibility() {
     const controls = document.getElementById('hax-touch-controls');
     if (!controls) return;
 
-    // Detect game room container or canvas presence
     const inRoom = !!(document.querySelector('.room-view') || document.querySelector('[class*="room-view"]') || document.querySelector('canvas'));
     const isLogin = !!(document.querySelector('.nickname-view') || document.querySelector('[class*="nickname"]'));
+    const isRoomList = !!(document.querySelector('.roomlist-view') || document.querySelector('[class*="roomlist"]'));
 
-    if (modState.isHudEditMode || (inRoom && !isLogin)) {
+    if (modState.isHudEditMode || (inRoom && !isLogin && !isRoomList)) {
       controls.style.display = 'block';
     } else {
       controls.style.display = 'none';
@@ -610,7 +618,140 @@
 
   setInterval(updateHudVisibility, 500);
 
-  // --- 6. /MOD MENU CREATION WITH SETTINGS & HUD EDITOR ---
+  // --- 6. INJECT MOBILE HUD CONTROLS SETTINGS INTO HAXBALL'S SETTINGS > INPUT ---
+  function injectHudIntoNativeSettings() {
+    // Look for native Haxball settings input tab / view
+    const settingsViews = document.querySelectorAll('.settings-view, [class*="settings-view"], [class*="input-tab"]');
+    settingsViews.forEach(view => {
+      if (view.querySelector('#hax-mobile-hud-panel')) return;
+
+      const hudPanel = document.createElement('div');
+      hudPanel.id = 'hax-mobile-hud-panel';
+      hudPanel.style.cssText = `
+        margin-top: 15px;
+        padding: 12px;
+        background: #14161d;
+        border: 1px solid #333947;
+        border-radius: 8px;
+        color: #fff;
+        font-family: system-ui, sans-serif;
+      `;
+
+      hudPanel.innerHTML = `
+        <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #38bdf8;">📱 Mobile HUD & Touch Settings</h4>
+        
+        <button id="toggle-edit-hud-btn" style="
+          width: 100%;
+          background: #0284c7;
+          color: white;
+          border: none;
+          padding: 8px;
+          border-radius: 6px;
+          font-weight: bold;
+          font-size: 12px;
+          margin-bottom: 10px;
+          cursor: pointer;
+        ">Move HUD Buttons (Drag Mode)</button>
+
+        <div style="display:flex; justify-space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:12px; color:#cbd5e1;">Joystick Size</span>
+          <input type="range" id="joystick-size-slider" min="80" max="180" value="${userSettings.joystickSize}" style="width:120px;" />
+        </div>
+
+        <div style="display:flex; justify-space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:12px; color:#cbd5e1;">Kick Button Size</span>
+          <input type="range" id="kick-size-slider" min="60" max="140" value="${userSettings.kickSize}" style="width:120px;" />
+        </div>
+
+        <div style="border-top:1px solid #2d3342; padding-top:8px; margin-top:8px;">
+          <span style="font-size:12px; font-weight:bold; color:#cbd5e1; display:block; margin-bottom:6px;">⌨️ Key Overrides</span>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:11px;">
+            <div>
+              <span style="color:#a1a1aa;">Kick Key:</span>
+              <input type="text" id="key-kick-input" value="${userSettings.keyKick}" style="width:100%; background:#1e222b; color:#fff; border:1px solid #333947; padding:4px; border-radius:4px;" />
+            </div>
+            <div>
+              <span style="color:#a1a1aa;">Up Key:</span>
+              <input type="text" id="key-up-input" value="${userSettings.keyUp}" style="width:100%; background:#1e222b; color:#fff; border:1px solid #333947; padding:4px; border-radius:4px;" />
+            </div>
+            <div>
+              <span style="color:#a1a1aa;">Down Key:</span>
+              <input type="text" id="key-down-input" value="${userSettings.keyDown}" style="width:100%; background:#1e222b; color:#fff; border:1px solid #333947; padding:4px; border-radius:4px;" />
+            </div>
+            <div>
+              <span style="color:#a1a1aa;">Left Key:</span>
+              <input type="text" id="key-left-input" value="${userSettings.keyLeft}" style="width:100%; background:#1e222b; color:#fff; border:1px solid #333947; padding:4px; border-radius:4px;" />
+            </div>
+            <div>
+              <span style="color:#a1a1aa;">Right Key:</span>
+              <input type="text" id="key-right-input" value="${userSettings.keyRight}" style="width:100%; background:#1e222b; color:#fff; border:1px solid #333947; padding:4px; border-radius:4px;" />
+            </div>
+          </div>
+        </div>
+      `;
+
+      view.appendChild(hudPanel);
+
+      // Event Handlers inside Settings > Input
+      const editBtn = hudPanel.querySelector('#toggle-edit-hud-btn');
+      editBtn.onclick = () => {
+        modState.isHudEditMode = !modState.isHudEditMode;
+        editBtn.innerText = modState.isHudEditMode ? "Save Dragged Buttons" : "Move HUD Buttons (Drag Mode)";
+        editBtn.style.background = modState.isHudEditMode ? "#22c55e" : "#0284c7";
+        updateHudVisibility();
+      };
+
+      hudPanel.querySelector('#joystick-size-slider').addEventListener('input', (e) => {
+        const val = parseInt(e.target.value);
+        userSettings.joystickSize = val;
+        const base = document.getElementById('hax-joystick-base');
+        const knob = document.getElementById('hax-joystick-knob');
+        if (base && knob) {
+          base.style.width = `${val}px`;
+          base.style.height = `${val}px`;
+          const kSize = Math.round(val * 0.4);
+          const kPos = Math.round((val - kSize) / 2);
+          knob.style.width = `${kSize}px`;
+          knob.style.height = `${kSize}px`;
+          knob.style.left = `${kPos}px`;
+          knob.style.top = `${kPos}px`;
+        }
+        saveSettings(userSettings);
+      });
+
+      hudPanel.querySelector('#kick-size-slider').addEventListener('input', (e) => {
+        const val = parseInt(e.target.value);
+        userSettings.kickSize = val;
+        const btn = document.getElementById('hax-kick-btn');
+        if (btn) {
+          btn.style.width = `${val}px`;
+          btn.style.height = `${val}px`;
+          btn.style.fontSize = `${Math.round(val * 0.2)}px`;
+        }
+        saveSettings(userSettings);
+      });
+
+      const bindInput = (id, keyName) => {
+        const el = hudPanel.querySelector('#' + id);
+        if (el) {
+          el.addEventListener('change', (e) => {
+            userSettings[keyName] = e.target.value.trim();
+            saveSettings(userSettings);
+          });
+        }
+      };
+
+      bindInput('key-kick-input', 'keyKick');
+      bindInput('key-up-input', 'keyUp');
+      bindInput('key-down-input', 'keyDown');
+      bindInput('key-left-input', 'keyLeft');
+      bindInput('key-right-input', 'keyRight');
+    });
+  }
+
+  setInterval(injectHudIntoNativeSettings, 500);
+
+  // --- 7. CLEAN /MOD MENU (IMAGE UPLOADS ONLY) ---
   function createModMenu() {
     if (document.getElementById('hax-mod-menu')) return;
 
@@ -622,87 +763,28 @@
         transform: translate(-50%, -50%);
         background: #1e222b;
         color: #fff;
-        padding: 18px;
+        padding: 20px;
         border-radius: 14px;
         box-shadow: 0 10px 35px rgba(0,0,0,0.8);
         border: 1px solid #333947;
         font-family: system-ui, -apple-system, sans-serif;
         z-index: 9999999;
         display: none;
-        width: 310px;
-        max-height: 85vh;
-        overflow-y: auto;
+        width: 290px;
       ">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #2d3342; padding-bottom:8px;">
-          <h3 style="margin:0; font-size:16px; color:#3b82f6;">⚙️ Haxball Mobile Settings</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #2d3342; padding-bottom:8px;">
+          <h3 style="margin:0; font-size:16px; color:#3b82f6;">🖼️ Custom Photo Customizer</h3>
           <span id="close-mod-menu" style="cursor:pointer; font-weight:bold; color:#94a3b8; font-size:20px;">✕</span>
         </div>
 
-        <!-- Custom Image Section -->
-        <div style="margin-bottom: 12px;">
-          <label style="display:block; font-size:12px; margin-bottom:4px; color:#cbd5e1; font-weight:bold;">⚽ Custom Ball Photo</label>
+        <div style="margin-bottom: 14px;">
+          <label style="display:block; font-size:12px; margin-bottom:6px; color:#cbd5e1; font-weight:bold;">⚽ Custom Ball Photo</label>
           <input type="file" id="ball-photo-input" accept="image/*" style="width: 100%; font-size:11px; background:#14161d; color:#fff; border:1px solid #333947; padding:6px; border-radius:6px;" />
         </div>
 
-        <div style="margin-bottom: 12px;">
-          <label style="display:block; font-size:12px; margin-bottom:4px; color:#cbd5e1; font-weight:bold;">🏃 Custom Player Photo</label>
+        <div style="margin-bottom: 16px;">
+          <label style="display:block; font-size:12px; margin-bottom:6px; color:#cbd5e1; font-weight:bold;">🏃 Custom Player Photo</label>
           <input type="file" id="player-photo-input" accept="image/*" style="width: 100%; font-size:11px; background:#14161d; color:#fff; border:1px solid #333947; padding:6px; border-radius:6px;" />
-        </div>
-
-        <!-- HUD Customization Section -->
-        <div style="border-top:1px solid #2d3342; padding-top:10px; margin-bottom:12px;">
-          <label style="display:block; font-size:12px; margin-bottom:8px; color:#38bdf8; font-weight:bold;">📐 HUD & Controls Editor</label>
-          
-          <button id="toggle-edit-hud-btn" style="
-            width: 100%;
-            background: #0284c7;
-            color: white;
-            border: none;
-            padding: 8px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 12px;
-            margin-bottom: 8px;
-            cursor: pointer;
-          ">Move HUD Buttons (Drag Mode)</button>
-
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <span style="font-size:11px; color:#cbd5e1;">Joystick Size</span>
-            <input type="range" id="joystick-size-slider" min="80" max="180" value="${userSettings.joystickSize}" style="width:120px;" />
-          </div>
-
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <span style="font-size:11px; color:#cbd5e1;">Kick Size</span>
-            <input type="range" id="kick-size-slider" min="60" max="140" value="${userSettings.kickSize}" style="width:120px;" />
-          </div>
-        </div>
-
-        <!-- Keybindings Section -->
-        <div style="border-top:1px solid #2d3342; padding-top:10px; margin-bottom:12px;">
-          <label style="display:block; font-size:12px; margin-bottom:8px; color:#38bdf8; font-weight:bold;">⌨️ Key Bindings</label>
-          
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:11px;">
-            <div>
-              <span style="color:#cbd5e1;">Kick Key:</span>
-              <input type="text" id="key-kick-input" value="${userSettings.keyKick}" style="width:100%; background:#14161d; color:#fff; border:1px solid #333947; padding:4px; border-radius:4px; margin-top:2px;" />
-            </div>
-            <div>
-              <span style="color:#cbd5e1;">Up Key:</span>
-              <input type="text" id="key-up-input" value="${userSettings.keyUp}" style="width:100%; background:#14161d; color:#fff; border:1px solid #333947; padding:4px; border-radius:4px; margin-top:2px;" />
-            </div>
-            <div>
-              <span style="color:#cbd5e1;">Down Key:</span>
-              <input type="text" id="key-down-input" value="${userSettings.keyDown}" style="width:100%; background:#14161d; color:#fff; border:1px solid #333947; padding:4px; border-radius:4px; margin-top:2px;" />
-            </div>
-            <div>
-              <span style="color:#cbd5e1;">Left Key:</span>
-              <input type="text" id="key-left-input" value="${userSettings.keyLeft}" style="width:100%; background:#14161d; color:#fff; border:1px solid #333947; padding:4px; border-radius:4px; margin-top:2px;" />
-            </div>
-            <div>
-              <span style="color:#cbd5e1;">Right Key:</span>
-              <input type="text" id="key-right-input" value="${userSettings.keyRight}" style="width:100%; background:#14161d; color:#fff; border:1px solid #333947; padding:4px; border-radius:4px; margin-top:2px;" />
-            </div>
-          </div>
         </div>
 
         <button id="reset-textures-btn" style="
@@ -710,11 +792,12 @@
           background: #ef4444;
           color: white;
           border: none;
-          padding: 8px;
+          padding: 10px;
           border-radius: 6px;
           font-weight: bold;
           font-size: 12px;
-        ">Reset Textures & Settings</button>
+          cursor: pointer;
+        ">Reset Default Photos</button>
       </div>
     `;
 
@@ -729,7 +812,6 @@
           document.getElementById('hax-mod-menu').style.display = 'none';
         };
 
-        // File uploads
         document.getElementById('ball-photo-input').addEventListener('change', (e) => {
           const file = e.target.files[0];
           if (file) {
@@ -756,70 +838,11 @@
           }
         });
 
-        // Edit HUD toggle
-        const editBtn = document.getElementById('toggle-edit-hud-btn');
-        editBtn.onclick = () => {
-          modState.isHudEditMode = !modState.isHudEditMode;
-          editBtn.innerText = modState.isHudEditMode ? "Save Dragged Buttons" : "Move HUD Buttons (Drag Mode)";
-          editBtn.style.background = modState.isHudEditMode ? "#22c55e" : "#0284c7";
-          updateHudVisibility();
-        };
-
-        // Size Sliders
-        document.getElementById('joystick-size-slider').addEventListener('input', (e) => {
-          const val = parseInt(e.target.value);
-          userSettings.joystickSize = val;
-          const base = document.getElementById('hax-joystick-base');
-          const knob = document.getElementById('hax-joystick-knob');
-          if (base && knob) {
-            base.style.width = `${val}px`;
-            base.style.height = `${val}px`;
-            const kSize = Math.round(val * 0.4);
-            const kPos = Math.round((val - kSize) / 2);
-            knob.style.width = `${kSize}px`;
-            knob.style.height = `${kSize}px`;
-            knob.style.left = `${kPos}px`;
-            knob.style.top = `${kPos}px`;
-          }
-          saveSettings(userSettings);
-        });
-
-        document.getElementById('kick-size-slider').addEventListener('input', (e) => {
-          const val = parseInt(e.target.value);
-          userSettings.kickSize = val;
-          const btn = document.getElementById('hax-kick-btn');
-          if (btn) {
-            btn.style.width = `${val}px`;
-            btn.style.height = `${val}px`;
-            btn.style.fontSize = `${Math.round(val * 0.2)}px`;
-          }
-          saveSettings(userSettings);
-        });
-
-        // Keybindings inputs
-        const bindInput = (id, keyName) => {
-          const el = document.getElementById(id);
-          if (el) {
-            el.addEventListener('change', (e) => {
-              userSettings[keyName] = e.target.value.trim();
-              saveSettings(userSettings);
-            });
-          }
-        };
-
-        bindInput('key-kick-input', 'keyKick');
-        bindInput('key-up-input', 'keyUp');
-        bindInput('key-down-input', 'keyDown');
-        bindInput('key-left-input', 'keyLeft');
-        bindInput('key-right-input', 'keyRight');
-
         document.getElementById('reset-textures-btn').onclick = () => {
           modState.ballImage = null;
           modState.defaultPlayerImg = null;
           document.getElementById('ball-photo-input').value = '';
           document.getElementById('player-photo-input').value = '';
-          localStorage.removeItem('hax_mobile_settings');
-          location.reload();
         };
       }
     }
@@ -875,7 +898,7 @@
     else window.addEventListener('DOMContentLoaded', mountBtn);
   }
 
-  // --- 7. FIXED CANVAS RENDERING HOOK FOR PLAYER & BALL IMAGE OVERLAY ---
+  // --- 8. CANVAS RENDERING HOOK FOR PLAYER & BALL IMAGE OVERLAY ---
   function hookCanvasRendering() {
     const HTMLCanvasElementProto = HTMLCanvasElement.prototype;
     const originalGetContext = HTMLCanvasElementProto.getContext;
@@ -893,13 +916,11 @@
         const originalArc = ctx.arc;
 
         ctx.arc = function (x, y, radius, startAngle, endAngle, counterclockwise) {
-          // Render default game circle first so original stroke/fills happen correctly
           const result = originalArc.call(this, x, y, radius, startAngle, endAngle, counterclockwise);
 
           const isBall = radius >= 7 && radius <= 12;
           const isPlayer = radius >= 13 && radius <= 17;
 
-          // Overlay ball image perfectly over ball disc
           if (isBall && modState.ballImage) {
             ctx.save();
             ctx.beginPath();
@@ -909,7 +930,6 @@
             ctx.restore();
           }
 
-          // Overlay player photo perfectly over player disc
           if (isPlayer && modState.defaultPlayerImg) {
             ctx.save();
             ctx.beginPath();
@@ -928,7 +948,7 @@
 
   // Initialize all features
   injectMobileUIStyles();
-  injectLoginCredits();
+  injectAlwaysVisibleCredits();
   hookCanvasRendering();
   createVirtualControls();
   createModMenu();
