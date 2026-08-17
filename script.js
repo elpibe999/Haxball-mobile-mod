@@ -1,220 +1,190 @@
 (function () {
-    if (window.hasInjectedHaxballUltraMod) return;
-    window.hasInjectedHaxballUltraMod = true;
+    if (window.hasHaxballModInjected) return;
+    window.hasHaxballModInjected = true;
 
-    function initMod() {
-        const frame = document.querySelector('.gameframe');
-        const targetDoc = frame ? (frame.contentDocument || frame.contentWindow.document) : document;
-        const targetWin = frame ? frame.contentWindow : window;
+    // Configuración guardada en el dispositivo
+    const config = JSON.parse(localStorage.getItem('hb_mod_cfg')) || {
+        joySize: 120, joyX: 30, joyY: 30,
+        kickSize: 90, kickX: 35, kickY: 40,
+        opacity: 0.85
+    };
+    const saveCfg = () => localStorage.setItem('hb_mod_cfg', JSON.stringify(config));
 
-        if (!targetDoc || !targetDoc.body) {
-            setTimeout(initMod, 150);
-            return;
-        }
+    // Inyección de controles de forma limpia
+    function setupOverlay(doc, win) {
+        if (doc.getElementById('hb-hud-container')) return;
 
-        // ==========================================
-        // 1. CONFIGURACIÓN GUARDADA Y ESTILOS HUD
-        // ==========================================
-        const config = JSON.parse(localStorage.getItem('haxball_mod_cfg')) || {
-            joySize: 130, joyX: 25, joyY: 25,
-            kickSize: 100, kickX: 30, kickY: 35,
-            hudOpacity: 0.8
-        };
-
-        const saveConfig = () => localStorage.setItem('haxball_mod_cfg', JSON.stringify(config));
-
-        const style = targetDoc.createElement('style');
-        style.id = 'ultra-mod-styles';
+        // Estilos CSS independientes
+        const style = doc.createElement('style');
         style.innerHTML = `
-            /* Aceleración por hardware sin romper fondos */
-            canvas, #hud-container { transform: translateZ(0); backface-visibility: hidden; }
-            
-            /* Ocultar solo elementos molestos específicos sin romper el login */
-            .rightbar, .file-btn, [data-hook="rec-btn"] { display: none !important; }
-            body { touch-action: none; user-select: none; -webkit-user-select: none; margin: 0; overflow: hidden; }
-            
-            /* HUD - Oculto por defecto, visible solo en sala */
-            #hud-container { display: none; position: fixed; inset: 0; pointer-events: none; z-index: 999999; }
-            .in-room #hud-container { display: block !important; }
+            #hb-hud-container { display: none; position: fixed; inset: 0; pointer-events: none; z-index: 2147483647; }
+            body.in-game #hb-hud-container { display: block !important; }
 
-            #joystick-base {
-                position: fixed;
-                background: rgba(255, 255, 255, 0.15);
-                border: 2px solid rgba(255, 255, 255, 0.4);
-                border-radius: 50%; pointer-events: auto; touch-action: none;
-                box-shadow: 0 0 10px rgba(0,0,0,0.4);
+            #hb-joystick {
+                position: fixed; background: rgba(255, 255, 255, 0.2);
+                border: 2px solid rgba(255, 255, 255, 0.5); border-radius: 50%;
+                pointer-events: auto; touch-action: none;
             }
-            #joystick-thumb {
+            #hb-thumb {
                 position: absolute; top: 50%; left: 50%; width: 40%; height: 40%;
-                background: rgba(255, 255, 255, 0.85); border-radius: 50%;
-                transform: translate(-50%, -50%); pointer-events: none;
+                background: #fff; border-radius: 50%; transform: translate(-50%, -50%);
+                pointer-events: none;
             }
-            #kick-btn {
-                position: fixed;
-                background: rgba(255, 255, 255, 0.2);
-                border: 3px solid rgba(255, 255, 255, 0.6);
-                border-radius: 50%; pointer-events: auto; touch-action: none;
-                display: flex; align-items: center; justify-content: center;
+            #hb-kick {
+                position: fixed; background: rgba(255, 255, 255, 0.25);
+                border: 3px solid #fff; border-radius: 50%; pointer-events: auto;
+                touch-action: none; display: flex; align-items: center; justify-content: center;
                 color: #fff; font-weight: bold; font-family: sans-serif;
-                box-shadow: 0 0 10px rgba(0,0,0,0.4);
             }
-            #kick-btn:active { background: rgba(255, 255, 255, 0.6); }
+            #hb-kick:active { background: rgba(255, 255, 255, 0.6); }
 
-            /* Menú /mod */
-            #mod-menu {
+            #hb-menu {
                 display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-                width: 300px; background: rgba(20, 25, 30, 0.95); border: 2px solid #3b82f6;
-                border-radius: 12px; padding: 15px; color: #fff; font-family: sans-serif;
-                z-index: 1000000; box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+                width: 280px; background: rgba(15, 23, 42, 0.95); border: 2px solid #3b82f6;
+                border-radius: 10px; padding: 15px; color: #fff; font-family: sans-serif;
+                z-index: 2147483647; pointer-events: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
             }
-            #mod-menu h3 { margin: 0 0 10px 0; font-size: 16px; text-align: center; color: #60a5fa; }
-            .mod-row { margin-bottom: 10px; display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
-            .mod-row input { background: #0f172a; border: 1px solid #334155; color: #fff; padding: 6px; border-radius: 6px; }
-            .mod-btn-close { background: #ef4444; color: #fff; border: none; padding: 8px; border-radius: 6px; width: 100%; font-weight: bold; margin-top: 5px; }
+            #hb-menu h4 { margin: 0 0 10px 0; text-align: center; color: #60a5fa; }
+            .hb-row { margin-bottom: 8px; font-size: 12px; display: flex; flex-direction: column; gap: 3px; }
+            .hb-row input { background: #1e293b; border: 1px solid #475569; color: #fff; padding: 5px; border-radius: 4px; }
+            .hb-btn { background: #2563eb; color: #fff; border: none; padding: 8px; border-radius: 5px; width: 100%; font-weight: bold; margin-top: 5px; cursor: pointer; }
         `;
-        targetDoc.head.appendChild(style);
+        doc.head.appendChild(style);
 
-        // ==========================================
-        // 2. CREACIÓN DEL HUD Y CONTROLES
-        // ==========================================
-        const hudContainer = targetDoc.createElement('div');
-        hudContainer.id = 'hud-container';
+        // Contenedores del HUD
+        const container = doc.createElement('div');
+        container.id = 'hb-hud-container';
 
-        const joyBase = targetDoc.createElement('div');
-        joyBase.id = 'joystick-base';
-        const joyThumb = targetDoc.createElement('div');
-        joyThumb.id = 'joystick-thumb';
-        joyBase.appendChild(joyThumb);
+        const joy = doc.createElement('div');
+        joy.id = 'hb-joystick';
+        const thumb = doc.createElement('div');
+        thumb.id = 'hb-thumb';
+        joy.appendChild(thumb);
 
-        const kickBtn = targetDoc.createElement('div');
-        kickBtn.id = 'kick-btn';
-        kickBtn.innerText = 'KICK';
+        const kick = doc.createElement('div');
+        kick.id = 'hb-kick';
+        kick.innerText = 'KICK';
 
-        hudContainer.appendChild(joyBase);
-        hudContainer.appendChild(kickBtn);
-        targetDoc.body.appendChild(hudContainer);
+        container.appendChild(joy);
+        container.appendChild(kick);
+        doc.body.appendChild(container);
 
-        const applyHudStyles = () => {
-            joyBase.style.width = `${config.joySize}px`;
-            joyBase.style.height = `${config.joySize}px`;
-            joyBase.style.left = `${config.joyX}px`;
-            joyBase.style.bottom = `${config.joyY}px`;
+        const updateHud = () => {
+            joy.style.width = `${config.joySize}px`; joy.style.height = `${config.joySize}px`;
+            joy.style.left = `${config.joyX}px`; joy.style.bottom = `${config.joyY}px`;
 
-            kickBtn.style.width = `${config.kickSize}px`;
-            kickBtn.style.height = `${config.kickSize}px`;
-            kickBtn.style.right = `${config.kickX}px`;
-            kickBtn.style.bottom = `${config.kickY}px`;
-            kickBtn.style.fontSize = `${config.kickSize * 0.22}px`;
+            kick.style.width = `${config.kickSize}px`; kick.style.height = `${config.kickSize}px`;
+            kick.style.right = `${config.kickX}px`; kick.style.bottom = `${config.kickY}px`;
+            kick.style.fontSize = `${config.kickSize * 0.22}px`;
 
-            hudContainer.style.opacity = config.hudOpacity;
+            container.style.opacity = config.opacity;
         };
-        applyHudStyles();
+        updateHud();
 
-        // ==========================================
-        // 3. LOGICA DEL JOYSTICK Y 0-DELAY
-        // ==========================================
-        let activeKeys = { KeyW: false, KeyA: false, KeyS: false, KeyD: false };
-
+        // Controlador de Teclas WASD & X
+        let keys = { KeyW: false, KeyA: false, KeyS: false, KeyD: false };
         const sendKey = (code, type) => {
             const ev = new KeyboardEvent(type, { code: code, key: code.replace('Key', ''), bubbles: true });
-            targetDoc.dispatchEvent(ev);
-            targetWin.dispatchEvent(ev);
+            doc.dispatchEvent(ev);
+            win.dispatchEvent(ev);
+        };
+        const setMovement = (w, a, s, d) => {
+            if (keys.KeyW !== w) { sendKey('KeyW', w ? 'keydown' : 'keyup'); keys.KeyW = w; }
+            if (keys.KeyA !== a) { sendKey('KeyA', a ? 'keydown' : 'keyup'); keys.KeyA = a; }
+            if (keys.KeyS !== s) { sendKey('KeyS', s ? 'keydown' : 'keyup'); keys.KeyS = s; }
+            if (keys.KeyD !== d) { sendKey('KeyD', d ? 'keydown' : 'keyup'); keys.KeyD = d; }
         };
 
-        const updateKeys = (w, a, s, d) => {
-            if (activeKeys.KeyW !== w) { sendKey('KeyW', w ? 'keydown' : 'keyup'); activeKeys.KeyW = w; }
-            if (activeKeys.KeyA !== a) { sendKey('KeyA', a ? 'keydown' : 'keyup'); activeKeys.KeyA = a; }
-            if (activeKeys.KeyS !== s) { sendKey('KeyS', s ? 'keydown' : 'keyup'); activeKeys.KeyS = s; }
-            if (activeKeys.KeyD !== d) { sendKey('KeyD', d ? 'keydown' : 'keyup'); activeKeys.KeyD = d; }
-        };
-
+        // Movimiento Táctil del Joystick
         let isTouching = false;
-        const handleTouch = (touch) => {
-            const rect = joyBase.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            const deltaX = touch.clientX - centerX;
-            const deltaY = touch.clientY - centerY;
-            const angle = Math.atan2(deltaY, deltaX);
-            const dist = Math.min(rect.width / 2, Math.hypot(deltaX, deltaY));
+        const handleTouch = (e) => {
+            const touch = e.touches[0];
+            const rect = joy.getBoundingClientRect();
+            const cX = rect.left + rect.width / 2;
+            const cY = rect.top + rect.height / 2;
+            const dX = touch.clientX - cX;
+            const dY = touch.clientY - cY;
+            const angle = Math.atan2(dY, dX);
+            const dist = Math.min(rect.width / 2, Math.hypot(dX, dY));
 
-            joyThumb.style.transform = `translate(calc(-50% + ${dist * Math.cos(angle)}px), calc(-50% + ${dist * Math.sin(angle)}px))`;
+            thumb.style.transform = `translate(calc(-50% + ${dist * Math.cos(angle)}px), calc(-50% + ${dist * Math.sin(angle)}px))`;
 
             const sector = Math.round(((angle + 2 * Math.PI) % (2 * Math.PI) * 180 / Math.PI) / 45) % 8;
             switch (sector) {
-                case 0: updateKeys(false, false, false, true); break;
-                case 1: updateKeys(false, false, true, true); break;
-                case 2: updateKeys(false, false, true, false); break;
-                case 3: updateKeys(false, true, true, false); break;
-                case 4: updateKeys(false, true, false, false); break;
-                case 5: updateKeys(true, true, false, false); break;
-                case 6: updateKeys(true, false, false, false); break;
-                case 7: updateKeys(true, false, false, true); break;
+                case 0: setMovement(false, false, false, true); break;
+                case 1: setMovement(false, false, true, true); break;
+                case 2: setMovement(false, false, true, false); break;
+                case 3: setMovement(false, true, true, false); break;
+                case 4: setMovement(false, true, false, false); break;
+                case 5: setMovement(true, true, false, false); break;
+                case 6: setMovement(true, false, false, false); break;
+                case 7: setMovement(true, false, false, true); break;
             }
         };
 
-        joyBase.addEventListener('touchstart', (e) => { isTouching = true; handleTouch(e.touches[0]); e.preventDefault(); }, { passive: false });
-        joyBase.addEventListener('touchmove', (e) => { if (isTouching) handleTouch(e.touches[0]); e.preventDefault(); }, { passive: false });
-        joyBase.addEventListener('touchend', (e) => { isTouching = false; joyThumb.style.transform = 'translate(-50%, -50%)'; updateKeys(false, false, false, false); e.preventDefault(); }, { passive: false });
+        joy.addEventListener('touchstart', (e) => { isTouching = true; handleTouch(e); e.preventDefault(); }, { passive: false });
+        joy.addEventListener('touchmove', (e) => { if (isTouching) handleTouch(e); e.preventDefault(); }, { passive: false });
+        joy.addEventListener('touchend', (e) => { isTouching = false; thumb.style.transform = 'translate(-50%, -50%)'; setMovement(false, false, false, false); e.preventDefault(); }, { passive: false });
 
-        kickBtn.addEventListener('touchstart', (e) => { e.preventDefault(); sendKey('KeyX', 'keydown'); }, { passive: false });
-        kickBtn.addEventListener('touchend', (e) => { e.preventDefault(); sendKey('KeyX', 'keyup'); }, { passive: false });
+        kick.addEventListener('touchstart', (e) => { e.preventDefault(); sendKey('KeyX', 'keydown'); }, { passive: false });
+        kick.addEventListener('touchend', (e) => { e.preventDefault(); sendKey('KeyX', 'keyup'); }, { passive: false });
 
-        // ==========================================
-        // 4. DETECCIÓN DINÁMICA DE SALA
-        // ==========================================
-        setInterval(() => {
-            const gameCanvas = targetDoc.querySelector('canvas');
-            if (gameCanvas && gameCanvas.offsetWidth > 0) {
-                targetDoc.body.classList.add('in-room');
-            } else {
-                targetDoc.body.classList.remove('in-room');
-            }
-        }, 300);
-
-        // ==========================================
-        // 5. MENÚ /mod
-        // ==========================================
-        const menu = targetDoc.createElement('div');
-        menu.id = 'mod-menu';
+        // Menú /mod
+        const menu = doc.createElement('div');
+        menu.id = 'hb-menu';
         menu.innerHTML = `
-            <h3>Configuración Haxball Mod</h3>
-            <div class="mod-row"><label>Tamaño Joystick (px):</label><input type="number" id="cfg-joysize" value="${config.joySize}"></div>
-            <div class="mod-row"><label>Posición X / Y Joystick:</label>
-                <div style="display:flex; gap:5px;"><input type="number" id="cfg-joyx" value="${config.joyX}"><input type="number" id="cfg-joyy" value="${config.joyY}"></div>
-            </div>
-            <div class="mod-row"><label>Tamaño Botón Kick (px):</label><input type="number" id="cfg-kicksize" value="${config.kickSize}"></div>
-            <div class="mod-row"><label>Opacidad HUD (0.1 - 1):</label><input type="number" step="0.1" id="cfg-opacity" value="${config.hudOpacity}"></div>
-            <button class="mod-btn-close" id="cfg-close">Guardar y Cerrar</button>
+            <h4>Controles /mod</h4>
+            <div class="hb-row"><label>Tamaño Joystick:</label><input type="number" id="hb-js" value="${config.joySize}"></div>
+            <div class="hb-row"><label>Posición X / Y Joystick:</label><div style="display:flex;gap:4px"><input type="number" id="hb-jx" value="${config.joyX}"><input type="number" id="hb-jy" value="${config.joyY}"></div></div>
+            <div class="hb-row"><label>Tamaño Botón Kick:</label><input type="number" id="hb-ks" value="${config.kickSize}"></div>
+            <div class="hb-row"><label>Opacidad HUD (0.1 - 1):</label><input type="number" step="0.1" id="hb-op" value="${config.opacity}"></div>
+            <button class="hb-btn" id="hb-save">Guardar</button>
         `;
-        targetDoc.body.appendChild(menu);
+        doc.body.appendChild(menu);
 
-        const toggleMenu = () => {
-            menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+        doc.getElementById('hb-save').onclick = () => {
+            config.joySize = parseInt(doc.getElementById('hb-js').value) || 120;
+            config.joyX = parseInt(doc.getElementById('hb-jx').value) || 30;
+            config.joyY = parseInt(doc.getElementById('hb-jy').value) || 30;
+            config.kickSize = parseInt(doc.getElementById('hb-ks').value) || 90;
+            config.opacity = parseFloat(doc.getElementById('hb-op').value) || 0.85;
+            saveCfg(); updateHud();
+            menu.style.display = 'none';
         };
 
-        targetDoc.getElementById('cfg-close').addEventListener('click', () => {
-            config.joySize = parseInt(targetDoc.getElementById('cfg-joysize').value) || 130;
-            config.joyX = parseInt(targetDoc.getElementById('cfg-joyx').value) || 25;
-            config.joyY = parseInt(targetDoc.getElementById('cfg-joyy').value) || 25;
-            config.kickSize = parseInt(targetDoc.getElementById('cfg-kicksize').value) || 100;
-            config.hudOpacity = parseFloat(targetDoc.getElementById('cfg-opacity').value) || 0.8;
-            saveConfig();
-            applyHudStyles();
-            toggleMenu();
-        });
-
-        targetDoc.addEventListener('keydown', (e) => {
+        doc.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
-                const chatInput = targetDoc.querySelector('input[data-hook="input"]');
-                if (chatInput && chatInput.value.trim() === '/mod') {
-                    chatInput.value = '';
-                    toggleMenu();
+                const chat = doc.querySelector('input[data-hook="input"]');
+                if (chat && chat.value.trim() === '/mod') {
+                    chat.value = '';
+                    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
                 }
             }
         }, true);
+
+        // Activar HUD cuando el canvas del mapa aparezca
+        setInterval(() => {
+            const canvas = doc.querySelector('canvas');
+            if (canvas && canvas.offsetWidth > 100) {
+                doc.body.classList.add('in-game');
+            } else {
+                doc.body.classList.remove('in-game');
+            }
+        }, 500);
     }
 
-    if (document.readyState === 'complete') initMod();
-    else window.addEventListener('load', initMod);
+    // Esperar a que la página cargue por completo
+    function loop() {
+        const frame = document.querySelector('iframe.gameframe');
+        const targetDoc = frame ? (frame.contentDocument || frame.contentWindow.document) : document;
+        const targetWin = frame ? frame.contentWindow : window;
+
+        if (targetDoc && targetDoc.body && targetDoc.querySelector('div')) {
+            setupOverlay(targetDoc, targetWin);
+        } else {
+            setTimeout(loop, 300);
+        }
+    }
+
+    loop();
 })();
