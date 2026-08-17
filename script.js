@@ -1,78 +1,249 @@
+/**
+ * Haxball Custom Player & Ball Image Mod + Performance Booster
+ * Usage: Paste into developer console (F12) or load as a userscript/mod.
+ * Type /mod in game chat or press 'M' to open the customization menu.
+ */
+
 (function () {
-    // 1. FORZAR MODO MÓVIL (Antes de que cargue nada)
-    Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 5, configurable: true });
-    Object.defineProperty(navigator, 'platform', { get: () => 'Linux armv8l', configurable: true });
-    
-    // 2. CSS PARA OCULTAR INTERFAZ PC Y ADAPTAR PANTALLA
-    const style = document.createElement('style');
-    style.innerHTML = `
-        html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; background: #111; }
-        .header, .rightbar, .file-btn { display: none !important; }
-        .gameframe { width: 100vw !important; height: 100vh !important; border: none !important; }
-        
-        #v-hud { position: fixed; inset: 0; z-index: 9999; pointer-events: none; }
-        .v-joy { position: fixed; bottom: 30px; left: 30px; width: 140px; height: 140px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 2px solid #fff; pointer-events: auto; touch-action: none; }
-        .v-thumb { position: absolute; width: 50px; height: 50px; background: #fff; border-radius: 50%; top: 45px; left: 45px; pointer-events: none; }
-        .v-kick { position: fixed; bottom: 50px; right: 50px; width: 100px; height: 100px; border-radius: 50%; background: rgba(255,0,0,0.3); border: 3px solid #fff; pointer-events: auto; touch-action: none; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold; }
-    `;
-    document.head.appendChild(style);
+  'use strict';
 
-    // 3. CREAR HUD
-    const hud = document.createElement('div');
-    hud.id = 'v-hud';
-    hud.innerHTML = `<div class="v-joy" id="joy"><div class="v-thumb" id="thumb"></div></div><div class="v-kick" id="kick">KICK</div>`;
-    document.body.appendChild(hud);
+  // State Store
+  const modState = {
+    ballImage: null,
+    playerImages: {}, // Avatar/Player ID to Image
+    defaultPlayerImg: null,
+    enabled: true,
+    fpsBoost: true,
+    fps: 0,
+    frameCount: 0,
+    lastTime: performance.now()
+  };
 
-    // 4. LÓGICA DE ENVÍO DE TECLAS (ESTO ES LO QUE NO TENÍAS)
-    const sendKey = (code, type) => {
-        const frame = document.querySelector('iframe.gameframe');
-        if (frame && frame.contentWindow) {
-            // Enviamos el evento directamente al juego dentro del iframe
-            const ev = new KeyboardEvent(type, { code: code, bubbles: true, cancelable: true });
-            frame.contentWindow.dispatchEvent(ev);
-            frame.contentDocument.dispatchEvent(ev);
-        }
-    };
-
-    // 5. JOYSTICK ANALÓGICO (CÁLCULO DE ÁNGULOS)
-    let activeKeys = { w: false, a: false, s: false, d: false };
-    const joy = document.getElementById('joy');
-    const thumb = document.getElementById('thumb');
-
-    joy.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        const rect = joy.getBoundingClientRect();
-        const dx = touch.clientX - (rect.left + rect.width / 2);
-        const dy = touch.clientY - (rect.top + rect.height / 2);
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        const maxDist = 50;
-        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-
-        // Limitar posición del thumb
-        const clampX = Math.max(-maxDist, Math.min(maxDist, dx));
-        const clampY = Math.max(-maxDist, Math.min(maxDist, dy));
-        thumb.style.transform = `translate(${clampX}px, ${clampY}px)`;
-
-        // Mapear ángulos a WASD (Simple)
-        const newKeys = { w: (angle > -157.5 && angle < -22.5), s: (angle > 22.5 && angle < 157.5), a: (angle > 112.5 || angle < -112.5), d: (angle > -67.5 && angle < 67.5) };
-        
-        ['w','a','s','d'].forEach(k => {
-            if (newKeys[k] !== activeKeys[k]) {
-                sendKey('Key' + k.toUpperCase(), newKeys[k] ? 'keydown' : 'keyup');
-                activeKeys[k] = newKeys[k];
-            }
-        });
-    }, {passive: false});
-
-    joy.addEventListener('touchend', () => {
-        thumb.style.transform = `translate(0px, 0px)`;
-        ['w','a','s','d'].forEach(k => { if(activeKeys[k]) sendKey('Key' + k.toUpperCase(), 'keyup'); activeKeys[k] = false; });
+  // --- Optimization Flags ---
+  function applyPerformanceTweaks() {
+    // Force browser hardware acceleration hint
+    const canvases = document.querySelectorAll('canvas');
+    canvases.forEach(canvas => {
+      const ctx = canvas.getContext('2d', {
+        alpha: false, // Disables alpha channel if background is opaque for faster draw
+        desynchronized: true, // Reduces input latency on supported browsers
+        willReadFrequently: false
+      });
+      
+      // Image smoothing toggling for performance & crisp pixels
+      if (ctx) {
+        ctx.imageSmoothingEnabled = false;
+      }
     });
 
-    // 6. BOTÓN KICK
-    document.getElementById('kick').addEventListener('touchstart', (e) => { e.preventDefault(); sendKey('KeyX', 'keydown'); });
-    document.getElementById('kick').addEventListener('touchend', (e) => { e.preventDefault(); sendKey('KeyX', 'keyup'); });
-    
-    console.log("Modo Vixel Móvil Activado. Disfruta el juego.");
+    // Request high performance power preference if available
+    window.requestAnimationFrame = window.requestAnimationFrame || 
+                                   window.webkitRequestAnimationFrame || 
+                                   window.mozRequestAnimationFrame;
+  }
+
+  // --- UI Construction (/mod Menu) ---
+  function createModMenu() {
+    if (document.getElementById('hax-mod-menu')) return;
+
+    const menuHtml = `
+      <div id="hax-mod-menu" style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(18, 24, 38, 0.95);
+        color: #fff;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        border: 1px solid #2a364f;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        z-index: 999999;
+        display: none;
+        width: 320px;
+      ">
+        <div style="display:flex; justify-scale:space-between; align-items:center; margin-bottom:16px;">
+          <h3 style="margin:0; font-size:18px; color:#40a9ff;">🎮 Custom Mod Menu</h3>
+          <span id="close-mod-menu" style="cursor:pointer; font-weight:bold; color:#aaa;">✕</span>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display:block; font-size:12px; margin-bottom:6px; color:#ccc;">⚽ Ball Custom Photo</label>
+          <input type="file" id="ball-photo-input" accept="image/*" style="width: 100%; font-size:12px; background:#141923; color:#fff; border:1px solid #334155; padding:6px; border-radius:6px;" />
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display:block; font-size:12px; margin-bottom:6px; color:#ccc;">🏃 Player Custom Photo</label>
+          <input type="file" id="player-photo-input" accept="image/*" style="width: 100%; font-size:12px; background:#141923; color:#fff; border:1px solid #334155; padding:6px; border-radius:6px;" />
+        </div>
+
+        <div style="margin-bottom: 16px; display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:13px; color:#ccc;">⚡ Max FPS / 0-Delay Mode</span>
+          <input type="checkbox" id="fps-boost-toggle" checked style="cursor:pointer; transform:scale(1.2);" />
+        </div>
+
+        <button id="reset-textures-btn" style="
+          width: 100%;
+          background: #ef4444;
+          color: white;
+          border: none;
+          padding: 8px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: bold;
+          font-size: 12px;
+        ">Reset Default Textures</button>
+      </div>
+    `;
+
+    const div = document.createElement('div');
+    div.innerHTML = menuHtml;
+    document.body.appendChild(div);
+
+    // Event Listeners for UI
+    document.getElementById('close-mod-menu').onclick = () => {
+      document.getElementById('hax-mod-menu').style.display = 'none';
+    };
+
+    // Load Ball Image
+    document.getElementById('ball-photo-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => { modState.ballImage = img; };
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Load Player Image
+    document.getElementById('player-photo-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => { modState.defaultPlayerImg = img; };
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Toggle FPS Boost
+    document.getElementById('fps-boost-toggle').addEventListener('change', (e) => {
+      modState.fpsBoost = e.target.checked;
+      if (modState.fpsBoost) applyPerformanceTweaks();
+    });
+
+    // Reset Textures
+    document.getElementById('reset-textures-btn').onclick = () => {
+      modState.ballImage = null;
+      modState.defaultPlayerImg = null;
+      document.getElementById('ball-photo-input').value = '';
+      document.getElementById('player-photo-input').value = '';
+    };
+  }
+
+  // --- Toggle Menu Helper ---
+  function toggleMenu() {
+    const menu = document.getElementById('hax-mod-menu');
+    if (menu) {
+      menu.style.display = (menu.style.display === 'none' || !menu.style.display) ? 'block' : 'none';
+    }
+  }
+
+  // --- Listen for Chat Command /mod or Hotkey 'M' ---
+  function initCommandListener() {
+    window.addEventListener('keydown', (e) => {
+      // Toggle menu with 'M' key (when not typing in an input)
+      if (e.key.toLowerCase() === 'm' && document.activeElement.tagName !== 'INPUT') {
+        toggleMenu();
+      }
+    });
+
+    // Intercept chat inputs to check for /mod command
+    const originalFetch = window.fetch;
+    window.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const input = document.querySelector('input[type="text"]');
+        if (input && input.value.trim() === '/mod') {
+          e.preventDefault();
+          e.stopPropagation();
+          input.value = '';
+          toggleMenu();
+        }
+      }
+    }, true);
+  }
+
+  // --- Hook Canvas Context for Custom Rendering & Low-Latency ---
+  function hookCanvasRendering() {
+    const HTMLCanvasElementProto = HTMLCanvasElement.prototype;
+    const originalGetContext = HTMLCanvasElementProto.getContext;
+
+    HTMLCanvasElementProto.getContext = function (type, attributes) {
+      if (type === '2d') {
+        attributes = attributes || {};
+        attributes.desynchronized = true; // Enables low-latency rendering mode
+        attributes.alpha = false;
+      }
+      const ctx = originalGetContext.call(this, type, attributes);
+
+      if (ctx && !ctx.__isHooked) {
+        ctx.__isHooked = true;
+
+        // Hook arc method to detect circle/ball/player drawing calls
+        const originalArc = ctx.arc;
+        ctx.arc = function (x, y, radius, startAngle, endAngle, counterclockwise) {
+          // Identify ball vs player by radius heuristic
+          const isBall = radius >= 8 && radius <= 11; 
+          const isPlayer = radius >= 14 && radius <= 16;
+
+          if (isBall && modState.ballImage) {
+            ctx.save();
+            ctx.beginPath();
+            originalArc.call(this, x, y, radius, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(modState.ballImage, x - radius, y - radius, radius * 2, radius * 2);
+            ctx.restore();
+            return;
+          }
+
+          if (isPlayer && modState.defaultPlayerImg) {
+            ctx.save();
+            ctx.beginPath();
+            originalArc.call(this, x, y, radius, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(modState.defaultPlayerImg, x - radius, y - radius, radius * 2, radius * 2);
+            ctx.restore();
+            return;
+          }
+
+          return originalArc.call(this, x, y, radius, startAngle, endAngle, counterclockwise);
+        };
+      }
+      return ctx;
+    };
+  }
+
+  // --- Initialize Everything ---
+  function initMod() {
+    createModMenu();
+    initCommandListener();
+    hookCanvasRendering();
+    applyPerformanceTweaks();
+    console.log("✅ Haxball Custom Mod initialized. Type /mod or press 'M' to open menu.");
+  }
+
+  // Start when document is ready
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initMod();
+  } else {
+    document.addEventListener('DOMContentLoaded', initMod);
+  }
 })();
