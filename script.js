@@ -1,6 +1,6 @@
 /**
  * InjecThor Native Mobile Emulator + Haxball Custom Photo Mod
- * Mobile UI Centering, Settings > Input HUD Integration, Always-Visible Credits Tag
+ * Mobile UI Centering, Captcha Centering, Settings > Input HUD Integration
  * Author: Kartt
  */
 
@@ -47,14 +47,14 @@
     isHudEditMode: false
   };
 
-  // --- 2. GLOBAL CSS STYLES (CENTERING & DARK GRAY BACKGROUND) ---
+  // --- 2. GLOBAL CSS STYLES (FULLSCREEN BACKGROUND, CENTERING & CAPTCHA FIX) ---
   function injectMobileUIStyles() {
     if (document.getElementById('hax-mobile-responsive-styles')) return;
 
     const style = document.createElement('style');
     style.id = 'hax-mobile-responsive-styles';
     style.innerHTML = `
-      /* Dark Gray Background & True Viewport Centering */
+      /* Dark Gray Fullscreen Background & Viewport Fix */
       html, body {
         background-color: #1a1d24 !important;
         color: #e2e8f0 !important;
@@ -66,6 +66,9 @@
         -webkit-user-select: none !important;
         width: 100vw !important;
         height: 100vh !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -84,7 +87,7 @@
         box-sizing: border-box !important;
       }
 
-      /* --- NICKNAME / LOGIN SCREEN --- */
+      /* --- NICKNAME / LOGIN SCREEN (FULLSCREEN BACKDROP & CENTERED CONTAINER) --- */
       .nickname-view, [class*="nickname"] {
         position: absolute !important;
         top: 50% !important;
@@ -92,7 +95,7 @@
         transform: translate(-50%, -50%) !important;
         width: 90vw !important;
         max-width: 360px !important;
-        padding: 20px !important;
+        padding: 24px !important;
         background: #242832 !important;
         border: 1px solid #333947 !important;
         border-radius: 14px !important;
@@ -100,7 +103,7 @@
         flex-direction: column !important;
         align-items: center !important;
         justify-content: center !important;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.6) !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.7) !important;
       }
 
       .nickname-view input, [class*="nickname"] input {
@@ -170,6 +173,29 @@
         border-radius: 12px !important;
       }
 
+      /* --- RECAPTCHA / CAPTCHA DIALOG CENTERING FIX --- */
+      iframe[src*="recaptcha"], .g-recaptcha, [class*="recaptcha"], [class*="captcha"], .dialog[class*="captcha"] {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        margin: auto !important;
+        z-index: 99999999 !important;
+        max-width: 95vw !important;
+      }
+
+      /* Ensure captcha wrapper modal backdrop is centered */
+      div:has(> iframe[src*="recaptcha"]), div:has(> .g-recaptcha) {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        z-index: 99999999 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+
       /* --- IN-ROOM LOBBY VIEW --- */
       .room-view, [class*="room-view"] {
         position: absolute !important;
@@ -187,7 +213,7 @@
         flex-direction: column !important;
       }
 
-      /* --- ALWAYS VISIBLE CREDITS TAG --- */
+      /* --- CREDITS TAG (HIDDEN DURING LOGIN) --- */
       .kartt-credit-tag {
         position: fixed !important;
         bottom: 8px !important;
@@ -220,7 +246,7 @@
     document.head.appendChild(style);
   }
 
-  // Persistent credits text across ALL screens
+  // Persistent credits text (Hidden during login screen)
   function injectAlwaysVisibleCredits() {
     if (document.getElementById('kartt-global-credit')) return;
     const credit = document.createElement('div');
@@ -236,6 +262,21 @@
     if (document.body) mountCredit();
     else window.addEventListener('DOMContentLoaded', mountCredit);
   }
+
+  // Visibility manager for credits tag (Hides when on login screen)
+  function updateCreditsVisibility() {
+    const creditEl = document.getElementById('kartt-global-credit');
+    if (!creditEl) return;
+
+    const isLoginScreen = !!(document.querySelector('.nickname-view') || document.querySelector('[class*="nickname"]'));
+    if (isLoginScreen) {
+      creditEl.style.display = 'none';
+    } else {
+      creditEl.style.display = 'block';
+    }
+  }
+
+  setInterval(updateCreditsVisibility, 300);
 
   // --- 3. VIXEL MOBILE SPOOFING ---
   function applyMobileEmulation(targetWindow) {
@@ -620,7 +661,6 @@
 
   // --- 6. INJECT MOBILE HUD CONTROLS SETTINGS INTO HAXBALL'S SETTINGS > INPUT ---
   function injectHudIntoNativeSettings() {
-    // Look for native Haxball settings input tab / view
     const settingsViews = document.querySelectorAll('.settings-view, [class*="settings-view"], [class*="input-tab"]');
     settingsViews.forEach(view => {
       if (view.querySelector('#hax-mobile-hud-panel')) return;
@@ -692,7 +732,6 @@
 
       view.appendChild(hudPanel);
 
-      // Event Handlers inside Settings > Input
       const editBtn = hudPanel.querySelector('#toggle-edit-hud-btn');
       editBtn.onclick = () => {
         modState.isHudEditMode = !modState.isHudEditMode;
