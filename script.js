@@ -1,6 +1,6 @@
 /**
  * InjecThor Native Mobile Emulator + Haxball Custom Photo Mod
- * Mobile UI Centering, Captcha Centering, Settings > Input HUD Integration, Canvas Display Fix
+ * Mobile UI Centering, Native Menu Centering, Settings > Input HUD Integration
  * Author: Kartt
  */
 
@@ -47,7 +47,7 @@
     isHudEditMode: false
   };
 
-  // --- 2. GLOBAL CSS STYLES (FULLSCREEN BACKGROUND, CENTERING, CAPTCHA & CANVAS FIX) ---
+  // --- 2. GLOBAL CSS STYLES (FULLSCREEN BACKGROUND, CENTERING & CAPTCHA FIX) ---
   function injectMobileUIStyles() {
     if (document.getElementById('hax-mobile-responsive-styles')) return;
 
@@ -82,6 +82,22 @@
       /* Main container wrapper sizing */
       body > div, .game-frame, .dialog, .box, .window, [class*="game-"], [class*="dialog"], [class*="view"] {
         box-sizing: border-box !important;
+      }
+
+      /* --- HAXBALL NATIVE MENU & HEADER CENTERING FIX --- */
+      .header, .nav, .menu, .top-bar, [class*="header"], [class*="nav"], [class*="menu"], [class*="top-bar"] {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        text-align: center !important;
+      }
+
+      /* Native Menu Action Buttons Centering */
+      .header button, .nav button, .menu button, [class*="header"] button, [class*="nav"] button, [class*="menu"] button {
+        margin: 0 4px !important;
+        align-self: center !important;
       }
 
       /* --- NICKNAME / LOGIN SCREEN --- */
@@ -213,7 +229,7 @@
         z-index: 500 !important;
       }
 
-      /* --- GAME CANVAS & CONTAINER VISIBILITY FIX --- */
+      /* --- GAME CANVAS CONTAINER --- */
       .game-view, [class*="game-view"] {
         position: fixed !important;
         inset: 0 !important;
@@ -825,7 +841,7 @@
         display: none;
         width: 290px;
       ">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #2d3342; padding-bottom:8px;">
+        <div style="display:flex; justify-space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #2d3342; padding-bottom:8px;">
           <h3 style="margin:0; font-size:16px; color:#3b82f6;">🖼️ Custom Photo Customizer</h3>
           <span id="close-mod-menu" style="cursor:pointer; font-weight:bold; color:#94a3b8; font-size:20px;">✕</span>
         </div>
@@ -923,13 +939,15 @@
     }
   }, true);
 
+  // TOP-CENTER FLOATING MOD BUTTON
   function createMenuButton() {
     const btn = document.createElement('div');
     btn.innerText = "⚙️ MOD";
     btn.style.cssText = `
       position: fixed;
       top: 10px;
-      left: 10px;
+      left: 50%;
+      transform: translateX(-50%);
       background: rgba(30, 34, 43, 0.9);
       color: #38bdf8;
       border: 1px solid #333947;
@@ -937,10 +955,11 @@
       border-radius: 20px;
       font-size: 12px;
       font-weight: bold;
-      z-index: 999999;
+      z-index: 9999999;
       pointer-events: auto;
       font-family: sans-serif;
       box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      cursor: pointer;
     `;
     btn.onclick = toggleMenu;
 
