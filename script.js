@@ -26,14 +26,16 @@
         const style = targetDoc.createElement('style');
         style.id = 'ultra-mod-styles';
         style.innerHTML = `
-            /* Maximizador de FPS & Cero Lag */
-            * { transform: translateZ(0); backface-visibility: hidden; }
-            .header, .rightbar, .file-btn, [data-hook="rec-btn"] { display: none !important; }
-            body { touch-action: none !important; user-select: none !important; -webkit-user-select: none; background: #1a2125 !important; overflow: hidden; }
+            /* Aceleración por hardware sin romper fondos */
+            canvas, #hud-container { transform: translateZ(0); backface-visibility: hidden; }
             
-            /* HUD - Oculto por defecto */
+            /* Ocultar solo elementos molestos específicos sin romper el login */
+            .rightbar, .file-btn, [data-hook="rec-btn"] { display: none !important; }
+            body { touch-action: none; user-select: none; -webkit-user-select: none; margin: 0; overflow: hidden; }
+            
+            /* HUD - Oculto por defecto, visible solo en sala */
             #hud-container { display: none; position: fixed; inset: 0; pointer-events: none; z-index: 999999; }
-            .in-room #hud-container { display: block; }
+            .in-room #hud-container { display: block !important; }
 
             #joystick-base {
                 position: fixed;
@@ -61,7 +63,7 @@
             /* Menú /mod */
             #mod-menu {
                 display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-                width: 320px; background: rgba(20, 25, 30, 0.95); border: 2px solid #3b82f6;
+                width: 300px; background: rgba(20, 25, 30, 0.95); border: 2px solid #3b82f6;
                 border-radius: 12px; padding: 15px; color: #fff; font-family: sans-serif;
                 z-index: 1000000; box-shadow: 0 10px 25px rgba(0,0,0,0.8);
             }
@@ -109,7 +111,7 @@
         applyHudStyles();
 
         // ==========================================
-        // 3. LOGICA DEL JOYSTICK Y 0-DELAY TECLADO
+        // 3. LOGICA DEL JOYSTICK Y 0-DELAY
         // ==========================================
         let activeKeys = { KeyW: false, KeyA: false, KeyS: false, KeyD: false };
 
@@ -159,25 +161,24 @@
         kickBtn.addEventListener('touchend', (e) => { e.preventDefault(); sendKey('KeyX', 'keyup'); }, { passive: false });
 
         // ==========================================
-        // 4. DETECCIÓN DE SALA (MOSTRAR/OCULTAR HUD)
+        // 4. DETECCIÓN DINÁMICA DE SALA
         // ==========================================
         setInterval(() => {
-            const inRoom = !!targetDoc.querySelector('.room-view, .game-view, canvas');
-            if (inRoom) {
+            const gameCanvas = targetDoc.querySelector('canvas');
+            if (gameCanvas && gameCanvas.offsetWidth > 0) {
                 targetDoc.body.classList.add('in-room');
             } else {
                 targetDoc.body.classList.remove('in-room');
             }
-        }, 500);
+        }, 300);
 
         // ==========================================
-        // 5. MENÚ /mod Y PERSONALIZACIÓN DE HUD/AVATAR
+        // 5. MENÚ /mod
         // ==========================================
         const menu = targetDoc.createElement('div');
         menu.id = 'mod-menu';
         menu.innerHTML = `
             <h3>Configuración Haxball Mod</h3>
-            <div class="mod-row"><label>Avatar Image/Text:</label><input type="text" id="cfg-avatar" placeholder="Ej: 99 o URL"></div>
             <div class="mod-row"><label>Tamaño Joystick (px):</label><input type="number" id="cfg-joysize" value="${config.joySize}"></div>
             <div class="mod-row"><label>Posición X / Y Joystick:</label>
                 <div style="display:flex; gap:5px;"><input type="number" id="cfg-joyx" value="${config.joyX}"><input type="number" id="cfg-joyy" value="${config.joyY}"></div>
@@ -189,8 +190,7 @@
         targetDoc.body.appendChild(menu);
 
         const toggleMenu = () => {
-            const isVisible = menu.style.display === 'block';
-            menu.style.display = isVisible ? 'none' : 'block';
+            menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
         };
 
         targetDoc.getElementById('cfg-close').addEventListener('click', () => {
@@ -204,7 +204,6 @@
             toggleMenu();
         });
 
-        // Interceptar el chat para activar /mod
         targetDoc.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 const chatInput = targetDoc.querySelector('input[data-hook="input"]');
