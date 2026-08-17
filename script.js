@@ -1,38 +1,64 @@
 /**
  * InjecThor Native Mobile Emulator + Haxball Custom Photo Mod
- * Optimized specifically for Android InjecThor WebView
+ * Includes Vixel-style Mobile Adaptation & Multi-Target Input Injection
  */
 
 (function () {
   'use strict';
 
-  // --- 1. FORCE MOBILE TOUCH CAPABILITIES FOR INJECTHOR WEBVIEW ---
-  function forceMobileWebView() {
-    // 1. Fake Touch Events if absent in WebView
-    if (!('ontouchstart' in window)) {
-      window.ontouchstart = null;
-    }
-    
-    // 2. Override navigator touch points
+  // --- 1. VIXEL MOBILE ADAPTATION & SPOOFING ---
+  function applyMobileEmulation(targetWindow) {
+    if (!targetWindow) return;
+
     try {
-      Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 5, configurable: true });
-      Object.defineProperty(navigator, 'msMaxTouchPoints', { get: () => 5, configurable: true });
+      // 1. Spoof Navigator Properties
+      const mobileUA = "Mozilla/5.0 (Linux; Android 12; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
+      Object.defineProperty(targetWindow.navigator, 'userAgent', { get: () => mobileUA, configurable: true });
+      Object.defineProperty(targetWindow.navigator, 'platform', { get: () => 'Linux armv8l', configurable: true });
+      Object.defineProperty(targetWindow.navigator, 'maxTouchPoints', { get: () => 5, configurable: true });
+      Object.defineProperty(targetWindow.navigator, 'msMaxTouchPoints', { get: () => 5, configurable: true });
     } catch (e) {}
 
-    // 3. Emulate TouchEvent constructor if missing or restricted
-    if (typeof window.TouchEvent === 'undefined') {
-      window.TouchEvent = function TouchEvent(type, dict) {
-        const evt = document.createEvent('UIEvent');
-        evt.initUIEvent(type, dict.bubbles || true, dict.cancelable || true, window, 1);
-        evt.touches = dict.touches || [];
-        evt.targetTouches = dict.targetTouches || [];
-        evt.changedTouches = dict.changedTouches || [];
-        return evt;
-      };
+    // 2. Add ontouchstart to window/document if missing
+    if (!('ontouchstart' in targetWindow)) {
+      targetWindow.ontouchstart = null;
     }
+    if (targetWindow.document && !('ontouchstart' in targetWindow.document)) {
+      targetWindow.document.ontouchstart = null;
+    }
+
+    // 3. Override matchMedia for Touch/Pointer Queries (Critical for Haxball mobile detection)
+    const originalMatchMedia = targetWindow.matchMedia;
+    targetWindow.matchMedia = function (query) {
+      if (typeof query === 'string') {
+        const q = query.toLowerCase();
+        if (q.includes('(pointer: coarse)') || q.includes('(hover: none)') || q.includes('any-pointer: coarse')) {
+          return { matches: true, media: query, addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {} };
+        }
+        if (q.includes('(pointer: fine)') || q.includes('(hover: hover)')) {
+          return { matches: false, media: query, addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {} };
+        }
+      }
+      return originalMatchMedia ? originalMatchMedia.call(targetWindow, query) : { matches: false, media: query, addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {} };
+    };
   }
 
-  forceMobileWebView();
+  // Apply to top window immediately
+  applyMobileEmulation(window);
+
+  // Monitor and patch any game iframes
+  function patchIframes() {
+    const iframes = document.querySelectorAll('iframe');
+    iframes.forEach(iframe => {
+      try {
+        if (iframe.contentWindow) {
+          applyMobileEmulation(iframe.contentWindow);
+        }
+      } catch (e) {}
+    });
+  }
+
+  setInterval(patchIframes, 1000);
 
   // Mod state store
   const modState = {
@@ -41,7 +67,104 @@
     fpsBoost: true
   };
 
-  // --- 2. VIRTUAL MOBILE JOYSTICK & KICK BUTTON ---
+  // --- 2. MULTI-TARGET INPUT DISPATCHER (WASD + Arrows + Space + X) ---
+  const activeKeys = new Set();
+
+  function sendKeyEventToTarget(target, type, key, code, keyCode) {
+    if (!target) return;
+    try {
+      const evt = new KeyboardEvent(type, {
+        key: key,
+        code: code,
+        keyCode: keyCode,
+        which: keyCode,
+        charCode: keyCode,
+        bubbles: true,
+        cancelable: true,
+        composed: true
+      });
+      target.dispatchEvent(evt);
+    } catch (e) {}
+  }
+
+  function dispatchKeyCombination(type, code) {
+    const targets = [
+      window,
+      document,
+      document.body,
+      document.activeElement
+    ];
+
+    // Include canvas elements and iframe targets
+    document.querySelectorAll('canvas').forEach(c => targets.push(c));
+    document.querySelectorAll('iframe').forEach(iframe => {
+      try {
+        if (iframe.contentWindow) {
+          targets.push(iframe.contentWindow);
+          targets.push(iframe.contentDocument);
+          targets.push(iframe.contentDocument.body);
+          iframe.contentDocument.querySelectorAll('canvas').forEach(c => targets.push(c));
+        }
+      } catch (e) {}
+    });
+
+    // Keys definitions for Arrow + WASD + Kick combinations
+    const keyDefinitions = {
+      'Up': [
+        { key: 'ArrowUp', code: 'ArrowUp', keyCode: 38 },
+        { key: 'w', code: 'KeyW', keyCode: 87 },
+        { key: 'W', code: 'KeyW', keyCode: 87 }
+      ],
+      'Down': [
+        { key: 'ArrowDown', code: 'ArrowDown', keyCode: 40 },
+        { key: 's', code: 'KeyS', keyCode: 83 },
+        { key: 'S', code: 'KeyS', keyCode: 83 }
+      ],
+      'Left': [
+        { key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37 },
+        { key: 'a', code: 'KeyA', keyCode: 65 },
+        { key: 'A', code: 'KeyA', keyCode: 65 }
+      ],
+      'Right': [
+        { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39 },
+        { key: 'd', code: 'KeyD', keyCode: 68 },
+        { key: 'D', code: 'KeyD', keyCode: 68 }
+      ],
+      'Kick': [
+        { key: ' ', code: 'Space', keyCode: 32 },
+        { key: 'x', code: 'KeyX', keyCode: 88 },
+        { key: 'X', code: 'KeyX', keyCode: 88 },
+        { key: 'Control', code: 'ControlLeft', keyCode: 17 },
+        { key: 'Shift', code: 'ShiftLeft', keyCode: 16 }
+      ]
+    };
+
+    const keysToDispatch = keyDefinitions[code] || [];
+
+    targets.forEach(target => {
+      if (!target) return;
+      keysToDispatch.forEach(k => {
+        sendKeyEventToTarget(target, type, k.key, k.code, k.keyCode);
+      });
+    });
+  }
+
+  function setMovementState(dir, isPressed) {
+    const keyName = 'dir_' + dir;
+    if (isPressed) {
+      if (!activeKeys.has(keyName)) {
+        activeKeys.add(keyName);
+        dispatchKeyCombination('keydown', dir);
+      }
+    } else {
+      if (activeKeys.has(keyName)) {
+        activeKeys.delete(keyName);
+        dispatchKeyCombination('keyup', dir);
+      }
+    }
+  }
+
+  // --- 3. VIRTUAL JOYSTICK & KICK BUTTON ---
   function createVirtualControls() {
     if (document.getElementById('hax-touch-controls')) return;
 
@@ -52,7 +175,7 @@
       bottom: 15px;
       left: 0;
       right: 0;
-      height: 150px;
+      height: 160px;
       pointer-events: none;
       z-index: 999999;
       display: flex;
@@ -61,43 +184,45 @@
       box-sizing: border-box;
       user-select: none;
       -webkit-user-select: none;
+      touch-action: none;
     `;
 
     // Joystick Base
     const joystickBase = document.createElement('div');
     joystickBase.style.cssText = `
-      width: 120px;
-      height: 120px;
-      background: rgba(255, 255, 255, 0.2);
-      border: 2px solid rgba(255, 255, 255, 0.4);
+      width: 125px;
+      height: 125px;
+      background: rgba(255, 255, 255, 0.18);
+      border: 3px solid rgba(255, 255, 255, 0.4);
       border-radius: 50%;
       pointer-events: auto;
       position: relative;
       touch-action: none;
       align-self: flex-end;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     `;
 
     const joystickKnob = document.createElement('div');
     joystickKnob.style.cssText = `
-      width: 48px;
-      height: 48px;
-      background: rgba(255, 255, 255, 0.8);
+      width: 50px;
+      height: 50px;
+      background: rgba(255, 255, 255, 0.85);
       border-radius: 50%;
       position: absolute;
-      top: 36px;
-      left: 36px;
+      top: 37.5px;
+      left: 37.5px;
       pointer-events: none;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
     `;
     joystickBase.appendChild(joystickKnob);
 
     // Kick Button
     const kickBtn = document.createElement('div');
     kickBtn.style.cssText = `
-      width: 95px;
-      height: 95px;
-      background: rgba(239, 68, 68, 0.75);
-      border: 3px solid rgba(255, 255, 255, 0.6);
+      width: 100px;
+      height: 100px;
+      background: rgba(239, 68, 68, 0.8);
+      border: 3px solid rgba(255, 255, 255, 0.7);
       border-radius: 50%;
       pointer-events: auto;
       touch-action: none;
@@ -106,10 +231,10 @@
       justify-content: center;
       color: white;
       font-weight: 900;
-      font-family: sans-serif;
-      font-size: 18px;
+      font-family: system-ui, sans-serif;
+      font-size: 20px;
       align-self: flex-end;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
       letter-spacing: 1px;
     `;
     kickBtn.innerText = "KICK";
@@ -126,103 +251,117 @@
     if (document.body) mountControls();
     else window.addEventListener('DOMContentLoaded', mountControls);
 
-    // Touch/Pointer handlers for Movement & Kick
-    let activePointerId = null;
+    // Joystick Touch Logic
+    let activeTouchId = null;
     let baseRect = null;
 
-    function handlePointerMove(e) {
-      if (e.pointerId !== activePointerId) return;
+    function processJoystickMove(clientX, clientY) {
+      if (!baseRect) return;
       const centerX = baseRect.left + baseRect.width / 2;
       const centerY = baseRect.top + baseRect.height / 2;
-      const dx = e.clientX - centerX;
-      const dy = e.clientY - centerY;
+      const dx = clientX - centerX;
+      const dy = clientY - centerY;
       const dist = Math.hypot(dx, dy);
-      const maxRadius = 36;
+      const maxRadius = 38;
 
       const angle = Math.atan2(dy, dx);
       const clampedDist = Math.min(dist, maxRadius);
-      const knobX = 36 + Math.cos(angle) * clampedDist;
-      const knobY = 36 + Math.sin(angle) * clampedDist;
+      const knobX = 37.5 + Math.cos(angle) * clampedDist;
+      const knobY = 37.5 + Math.sin(angle) * clampedDist;
 
       joystickKnob.style.left = `${knobX}px`;
       joystickKnob.style.top = `${knobY}px`;
 
-      triggerKeyEvent('ArrowLeft', dx < -12);
-      triggerKeyEvent('ArrowRight', dx > 12);
-      triggerKeyEvent('ArrowUp', dy < -12);
-      triggerKeyEvent('ArrowDown', dy > 12);
+      // Sensitivity thresholds
+      const threshold = 12;
+      setMovementState('Left', dx < -threshold);
+      setMovementState('Right', dx > threshold);
+      setMovementState('Up', dy < -threshold);
+      setMovementState('Down', dy > threshold);
     }
 
-    function handlePointerUp(e) {
-      if (e.pointerId === activePointerId) {
-        activePointerId = null;
-        joystickKnob.style.left = '36px';
-        joystickKnob.style.top = '36px';
+    function resetJoystick() {
+      activeTouchId = null;
+      joystickKnob.style.left = '37.5px';
+      joystickKnob.style.top = '37.5px';
 
-        triggerKeyEvent('ArrowLeft', false);
-        triggerKeyEvent('ArrowRight', false);
-        triggerKeyEvent('ArrowUp', false);
-        triggerKeyEvent('ArrowDown', false);
-
-        window.removeEventListener('pointermove', handlePointerMove);
-        window.removeEventListener('pointerup', handlePointerUp);
-        window.removeEventListener('pointercancel', handlePointerUp);
-      }
+      setMovementState('Left', false);
+      setMovementState('Right', false);
+      setMovementState('Up', false);
+      setMovementState('Down', false);
     }
 
-    joystickBase.addEventListener('pointerdown', (e) => {
-      activePointerId = e.pointerId;
-      baseRect = joystickBase.getBoundingClientRect();
-      window.addEventListener('pointermove', handlePointerMove);
-      window.addEventListener('pointerup', handlePointerUp);
-      window.addEventListener('pointercancel', handlePointerUp);
-      handlePointerMove(e);
-    });
-
-    kickBtn.addEventListener('pointerdown', (e) => {
+    // Touch events for Joystick
+    joystickBase.addEventListener('touchstart', (e) => {
       e.preventDefault();
-      triggerKeyEvent('Space', true);
-      kickBtn.style.transform = 'scale(0.92)';
-      kickBtn.style.background = 'rgba(220, 38, 38, 0.9)';
+      const touch = e.changedTouches[0];
+      activeTouchId = touch.identifier;
+      baseRect = joystickBase.getBoundingClientRect();
+      processJoystickMove(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (activeTouchId === null) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === activeTouchId) {
+          processJoystickMove(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+          break;
+        }
+      }
+    }, { passive: false });
+
+    const endTouchHandler = (e) => {
+      if (activeTouchId === null) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === activeTouchId) {
+          resetJoystick();
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('touchend', endTouchHandler);
+    window.addEventListener('touchcancel', endTouchHandler);
+
+    // Fallback Pointer events for desktop testing
+    joystickBase.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'touch') return; // Handled by touch events
+      activeTouchId = e.pointerId;
+      baseRect = joystickBase.getBoundingClientRect();
+      const onPointerMove = (pe) => processJoystickMove(pe.clientX, pe.clientY);
+      const onPointerUp = () => {
+        resetJoystick();
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+      };
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      processJoystickMove(e.clientX, e.clientY);
     });
+
+    // Kick Button Handlers
+    const pressKick = (e) => {
+      if (e) e.preventDefault();
+      setMovementState('Kick', true);
+      kickBtn.style.transform = 'scale(0.92)';
+      kickBtn.style.background = 'rgba(220, 38, 38, 0.95)';
+    };
 
     const releaseKick = (e) => {
-      e.preventDefault();
-      triggerKeyEvent('Space', false);
+      if (e) e.preventDefault();
+      setMovementState('Kick', false);
       kickBtn.style.transform = 'scale(1)';
-      kickBtn.style.background = 'rgba(239, 68, 68, 0.75)';
+      kickBtn.style.background = 'rgba(239, 68, 68, 0.8)';
     };
 
+    kickBtn.addEventListener('touchstart', pressKick, { passive: false });
+    kickBtn.addEventListener('touchend', releaseKick, { passive: false });
+    kickBtn.addEventListener('touchcancel', releaseKick, { passive: false });
+    kickBtn.addEventListener('pointerdown', pressKick);
     kickBtn.addEventListener('pointerup', releaseKick);
-    kickBtn.addEventListener('pointercancel', releaseKick);
   }
 
-  function triggerKeyEvent(code, isPressed) {
-    const keyMap = {
-      'ArrowLeft': { key: 'ArrowLeft', keyCode: 37 },
-      'ArrowRight': { key: 'ArrowRight', keyCode: 39 },
-      'ArrowUp': { key: 'ArrowUp', keyCode: 38 },
-      'ArrowDown': { key: 'ArrowDown', keyCode: 40 },
-      'Space': { key: ' ', keyCode: 32 }
-    };
-
-    const details = keyMap[code];
-    if (!details) return;
-
-    const event = new KeyboardEvent(isPressed ? 'keydown' : 'keyup', {
-      key: details.key,
-      code: code,
-      keyCode: details.keyCode,
-      which: details.keyCode,
-      bubbles: true,
-      cancelable: true
-    });
-
-    window.dispatchEvent(event);
-    document.dispatchEvent(event);
-  }
-
-  // --- 3. /MOD MENU CREATION ---
+  // --- 4. /MOD MENU CREATION ---
   function createModMenu() {
     if (document.getElementById('hax-mod-menu')) return;
 
@@ -380,7 +519,7 @@
     else window.addEventListener('DOMContentLoaded', mountBtn);
   }
 
-  // --- 4. CANVAS RENDERING HOOK FOR CUSTOM TEXTURES ---
+  // --- 5. CANVAS RENDERING HOOK FOR CUSTOM TEXTURES ---
   function hookCanvasRendering() {
     const HTMLCanvasElementProto = HTMLCanvasElement.prototype;
     const originalGetContext = HTMLCanvasElementProto.getContext;
