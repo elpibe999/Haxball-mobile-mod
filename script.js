@@ -1,6 +1,6 @@
 /**
  * InjecThor Native Mobile Emulator + Haxball Custom Photo Mod
- * Mobile UI Centering, Captcha Centering, Settings > Input HUD Integration
+ * Mobile UI Centering, Captcha Centering, Settings > Input HUD Integration, Canvas Display Fix
  * Author: Kartt
  */
 
@@ -47,14 +47,14 @@
     isHudEditMode: false
   };
 
-  // --- 2. GLOBAL CSS STYLES (FULLSCREEN BACKGROUND, CENTERING & CAPTCHA FIX) ---
+  // --- 2. GLOBAL CSS STYLES (FULLSCREEN BACKGROUND, CENTERING, CAPTCHA & CANVAS FIX) ---
   function injectMobileUIStyles() {
     if (document.getElementById('hax-mobile-responsive-styles')) return;
 
     const style = document.createElement('style');
     style.id = 'hax-mobile-responsive-styles';
     style.innerHTML = `
-      /* Dark Gray Fullscreen Background & Viewport Fix */
+      /* Dark Gray Fullscreen Background */
       html, body {
         background-color: #1a1d24 !important;
         color: #e2e8f0 !important;
@@ -69,9 +69,6 @@
         position: fixed !important;
         top: 0 !important;
         left: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
         font-family: system-ui, -apple-system, sans-serif !important;
       }
 
@@ -82,14 +79,14 @@
         font-size: 14px !important;
       }
 
-      /* Main container wrapper centering force */
+      /* Main container wrapper sizing */
       body > div, .game-frame, .dialog, .box, .window, [class*="game-"], [class*="dialog"], [class*="view"] {
         box-sizing: border-box !important;
       }
 
-      /* --- NICKNAME / LOGIN SCREEN (FULLSCREEN BACKDROP & CENTERED CONTAINER) --- */
+      /* --- NICKNAME / LOGIN SCREEN --- */
       .nickname-view, [class*="nickname"] {
-        position: absolute !important;
+        position: fixed !important;
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) !important;
@@ -104,6 +101,7 @@
         align-items: center !important;
         justify-content: center !important;
         box-shadow: 0 10px 30px rgba(0,0,0,0.7) !important;
+        z-index: 1000 !important;
       }
 
       .nickname-view input, [class*="nickname"] input {
@@ -129,9 +127,9 @@
         border: none !important;
       }
 
-      /* --- ROOM LIST / SERVER MENU (STRICTLY CENTERED) --- */
+      /* --- ROOM LIST / SERVER MENU --- */
       .roomlist-view, [class*="roomlist"] {
-        position: absolute !important;
+        position: fixed !important;
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) !important;
@@ -145,6 +143,7 @@
         display: flex !important;
         flex-direction: column !important;
         box-shadow: 0 10px 30px rgba(0,0,0,0.6) !important;
+        z-index: 1000 !important;
       }
 
       .roomlist-view table, [class*="roomlist"] table {
@@ -161,7 +160,7 @@
 
       /* --- CREATE ROOM MODAL --- */
       .create-room-view, [class*="create-room"], [class*="createRoom"] {
-        position: absolute !important;
+        position: fixed !important;
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) !important;
@@ -171,6 +170,7 @@
         padding: 16px !important;
         border: 1px solid #333947 !important;
         border-radius: 12px !important;
+        z-index: 1001 !important;
       }
 
       /* --- RECAPTCHA / CAPTCHA DIALOG CENTERING FIX --- */
@@ -184,7 +184,6 @@
         max-width: 95vw !important;
       }
 
-      /* Ensure captcha wrapper modal backdrop is centered */
       div:has(> iframe[src*="recaptcha"]), div:has(> .g-recaptcha) {
         position: fixed !important;
         top: 50% !important;
@@ -196,9 +195,9 @@
         justify-content: center !important;
       }
 
-      /* --- IN-ROOM LOBBY VIEW --- */
+      /* --- IN-ROOM LOBBY & GAME VIEW --- */
       .room-view, [class*="room-view"] {
-        position: absolute !important;
+        position: fixed !important;
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) !important;
@@ -211,6 +210,30 @@
         padding: 8px !important;
         display: flex !important;
         flex-direction: column !important;
+        z-index: 500 !important;
+      }
+
+      /* --- GAME CANVAS & CONTAINER VISIBILITY FIX --- */
+      .game-view, [class*="game-view"] {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        z-index: 10 !important;
+        background: transparent !important;
+      }
+
+      canvas {
+        display: block !important;
+        max-width: 100vw !important;
+        max-height: 100vh !important;
+        object-fit: contain !important;
+        margin: auto !important;
+        visibility: visible !important;
+        opacity: 1 !important;
       }
 
       /* --- CREDITS TAG (HIDDEN DURING LOGIN) --- */
@@ -231,15 +254,6 @@
         padding: 3px 10px !important;
         border-radius: 12px !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
-      }
-
-      /* --- GAME CANVAS --- */
-      canvas {
-        max-width: 100vw !important;
-        max-height: 100vh !important;
-        object-fit: contain !important;
-        margin: auto !important;
-        display: block !important;
       }
     `;
 
@@ -937,17 +951,12 @@
     else window.addEventListener('DOMContentLoaded', mountBtn);
   }
 
-  // --- 8. CANVAS RENDERING HOOK FOR PLAYER & BALL IMAGE OVERLAY ---
+  // --- 8. CLEAN CANVAS RENDERING HOOK FOR PLAYER & BALL IMAGE OVERLAY ---
   function hookCanvasRendering() {
     const HTMLCanvasElementProto = HTMLCanvasElement.prototype;
     const originalGetContext = HTMLCanvasElementProto.getContext;
 
     HTMLCanvasElementProto.getContext = function (type, attributes) {
-      if (type === '2d') {
-        attributes = attributes || {};
-        attributes.desynchronized = true;
-        attributes.alpha = false;
-      }
       const ctx = originalGetContext.call(this, type, attributes);
 
       if (ctx && !ctx.__isHooked) {
