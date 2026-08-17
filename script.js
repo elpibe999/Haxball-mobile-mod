@@ -1,17 +1,219 @@
 /**
  * InjecThor Native Mobile Emulator + Haxball Custom Photo Mod
- * Includes Vixel-style Mobile Adaptation & Multi-Target Input Injection
+ * Includes Full Mobile Responsive UI Adaptations (Login, Rooms, Lobby, Chat & Creation)
  */
 
 (function () {
   'use strict';
 
-  // --- 1. VIXEL MOBILE ADAPTATION & SPOOFING ---
+  // --- 1. MOBILE CSS STYLES INJECTION (RESPONSIVE UI FOR HAXBALL) ---
+  function injectMobileUIStyles() {
+    if (document.getElementById('hax-mobile-responsive-styles')) return;
+
+    const style = document.createElement('style');
+    style.id = 'hax-mobile-responsive-styles';
+    style.innerHTML = `
+      /* Prevent scrolling on whole viewport while playing */
+      html, body {
+        overflow: hidden !important;
+        touch-action: none !important;
+        user-select: none !important;
+        -webkit-user-select: none !important;
+      }
+
+      /* Enable input selection inside inputs/textareas */
+      input, textarea {
+        user-select: text !important;
+        -webkit-user-select: text !important;
+        font-size: 14px !important;
+      }
+
+      /* --- MOBILE OVERRIDES FOR HAXBALL INTERFACE --- */
+
+      /* Containers scaling & centering */
+      .game-frame, .dialog, .box, .window, [class*="game-"], [class*="dialog"] {
+        max-width: 98vw !important;
+        font-size: 13px !important;
+        border-radius: 8px !important;
+      }
+
+      /* Nickname / Login Screen */
+      .nickname-view, [class*="nickname"] {
+        width: 90vw !important;
+        max-width: 360px !important;
+        margin: auto !important;
+        padding: 15px !important;
+        box-sizing: border-box !important;
+      }
+
+      .nickname-view input, [class*="nickname"] input {
+        width: 100% !important;
+        height: 42px !important;
+        font-size: 16px !important;
+        margin-bottom: 10px !important;
+        padding: 8px 12px !important;
+        box-sizing: border-box !important;
+        border-radius: 8px !important;
+      }
+
+      .nickname-view button, [class*="nickname"] button {
+        width: 100% !important;
+        height: 44px !important;
+        font-size: 16px !important;
+        font-weight: bold !important;
+        border-radius: 8px !important;
+      }
+
+      /* Room List View */
+      .roomlist-view, [class*="roomlist"] {
+        width: 96vw !important;
+        height: 85vh !important;
+        max-height: 90vh !important;
+        margin: 5px auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 8px !important;
+        box-sizing: border-box !important;
+      }
+
+      .roomlist-view table, [class*="roomlist"] table {
+        width: 100% !important;
+        font-size: 12px !important;
+      }
+
+      .roomlist-view tr, [class*="roomlist"] tr {
+        height: 38px !important;
+      }
+
+      .roomlist-view td, [class*="roomlist"] td {
+        padding: 6px 4px !important;
+      }
+
+      /* Buttons bar in Room List */
+      .roomlist-view .button-row, [class*="roomlist"] [class*="buttons"], [class*="roomlist"] [class*="row"] {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        margin-top: 8px !important;
+      }
+
+      .roomlist-view button, [class*="roomlist"] button {
+        flex: 1 1 auto !important;
+        min-height: 40px !important;
+        font-size: 13px !important;
+        font-weight: bold !important;
+        padding: 8px 12px !important;
+        border-radius: 6px !important;
+      }
+
+      /* Create Room Menu Modal */
+      .create-room-view, [class*="create-room"], [class*="createRoom"] {
+        width: 90vw !important;
+        max-width: 380px !important;
+        padding: 12px !important;
+        box-sizing: border-box !important;
+      }
+
+      .create-room-view input, .create-room-view select,
+      [class*="create-room"] input, [class*="create-room"] select {
+        height: 36px !important;
+        font-size: 14px !important;
+        margin-bottom: 8px !important;
+        border-radius: 6px !important;
+      }
+
+      /* In-Room Lobby View */
+      .room-view, [class*="room-view"] {
+        width: 98vw !important;
+        height: 92vh !important;
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 5px !important;
+        box-sizing: border-box !important;
+      }
+
+      /* Team Containers Stack Layout for Mobile */
+      .room-view .teams-container, [class*="teams-"] {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        gap: 4px !important;
+        max-height: 45vh !important;
+        overflow-y: auto !important;
+      }
+
+      .room-view .team, [class*="team-"] {
+        flex: 1 !important;
+        min-width: 0 !important;
+        padding: 4px !important;
+      }
+
+      .room-view .team .player-list, [class*="player-list"] {
+        max-height: 120px !important;
+        overflow-y: auto !important;
+        font-size: 12px !important;
+      }
+
+      /* In-Room Chat & Input */
+      .chat-box, [class*="chat-"] {
+        height: 120px !important;
+        font-size: 11px !important;
+        border-radius: 6px !important;
+      }
+
+      .chat-input-container, [class*="chat-input"] {
+        display: flex !important;
+        height: 38px !important;
+        margin-top: 4px !important;
+      }
+
+      .chat-input-container input, [class*="chat-input"] input {
+        flex: 1 !important;
+        height: 100% !important;
+        font-size: 13px !important;
+        border-radius: 6px 0 0 6px !important;
+      }
+
+      .chat-input-container button, [class*="chat-input"] button {
+        width: 60px !important;
+        height: 100% !important;
+        font-size: 13px !important;
+        font-weight: bold !important;
+        border-radius: 0 6px 6px 0 !important;
+      }
+
+      /* In-Room Action Buttons Grid */
+      .room-view .controls, [class*="room-"] [class*="controls"], [class*="bottom-section"] {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)) !important;
+        gap: 5px !important;
+        margin-top: 6px !important;
+      }
+
+      .room-view button, [class*="room-"] button {
+        min-height: 38px !important;
+        font-size: 12px !important;
+        font-weight: bold !important;
+        padding: 4px 8px !important;
+        border-radius: 6px !important;
+      }
+
+      /* Game Canvas Container */
+      canvas {
+        max-width: 100vw !important;
+        max-height: 100vh !important;
+        object-fit: contain !important;
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  // --- 2. VIXEL MOBILE ADAPTATION & SPOOFING ---
   function applyMobileEmulation(targetWindow) {
     if (!targetWindow) return;
 
     try {
-      // 1. Spoof Navigator Properties
       const mobileUA = "Mozilla/5.0 (Linux; Android 12; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
       Object.defineProperty(targetWindow.navigator, 'userAgent', { get: () => mobileUA, configurable: true });
       Object.defineProperty(targetWindow.navigator, 'platform', { get: () => 'Linux armv8l', configurable: true });
@@ -19,7 +221,6 @@
       Object.defineProperty(targetWindow.navigator, 'msMaxTouchPoints', { get: () => 5, configurable: true });
     } catch (e) {}
 
-    // 2. Add ontouchstart to window/document if missing
     if (!('ontouchstart' in targetWindow)) {
       targetWindow.ontouchstart = null;
     }
@@ -27,7 +228,6 @@
       targetWindow.document.ontouchstart = null;
     }
 
-    // 3. Override matchMedia for Touch/Pointer Queries (Critical for Haxball mobile detection)
     const originalMatchMedia = targetWindow.matchMedia;
     targetWindow.matchMedia = function (query) {
       if (typeof query === 'string') {
@@ -43,16 +243,22 @@
     };
   }
 
-  // Apply to top window immediately
   applyMobileEmulation(window);
 
-  // Monitor and patch any game iframes
   function patchIframes() {
     const iframes = document.querySelectorAll('iframe');
     iframes.forEach(iframe => {
       try {
         if (iframe.contentWindow) {
           applyMobileEmulation(iframe.contentWindow);
+          if (iframe.contentDocument && iframe.contentDocument.head) {
+            if (!iframe.contentDocument.getElementById('hax-mobile-responsive-styles')) {
+              const style = iframe.contentDocument.createElement('style');
+              style.id = 'hax-mobile-responsive-styles';
+              style.innerHTML = document.getElementById('hax-mobile-responsive-styles')?.innerHTML || '';
+              iframe.contentDocument.head.appendChild(style);
+            }
+          }
         }
       } catch (e) {}
     });
@@ -67,7 +273,7 @@
     fpsBoost: true
   };
 
-  // --- 2. MULTI-TARGET INPUT DISPATCHER (WASD + Arrows + Space + X) ---
+  // --- 3. MULTI-TARGET INPUT DISPATCHER (WASD + Arrows + Space + X) ---
   const activeKeys = new Set();
 
   function sendKeyEventToTarget(target, type, key, code, keyCode) {
@@ -95,7 +301,6 @@
       document.activeElement
     ];
 
-    // Include canvas elements and iframe targets
     document.querySelectorAll('canvas').forEach(c => targets.push(c));
     document.querySelectorAll('iframe').forEach(iframe => {
       try {
@@ -108,7 +313,6 @@
       } catch (e) {}
     });
 
-    // Keys definitions for Arrow + WASD + Kick combinations
     const keyDefinitions = {
       'Up': [
         { key: 'ArrowUp', code: 'ArrowUp', keyCode: 38 },
@@ -164,7 +368,7 @@
     }
   }
 
-  // --- 3. VIRTUAL JOYSTICK & KICK BUTTON ---
+  // --- 4. VIRTUAL JOYSTICK & KICK BUTTON ---
   function createVirtualControls() {
     if (document.getElementById('hax-touch-controls')) return;
 
@@ -172,15 +376,15 @@
     container.id = 'hax-touch-controls';
     container.style.cssText = `
       position: fixed;
-      bottom: 15px;
+      bottom: 12px;
       left: 0;
       right: 0;
-      height: 160px;
+      height: 150px;
       pointer-events: none;
       z-index: 999999;
       display: flex;
       justify-content: space-between;
-      padding: 0 25px;
+      padding: 0 20px;
       box-sizing: border-box;
       user-select: none;
       -webkit-user-select: none;
@@ -190,10 +394,10 @@
     // Joystick Base
     const joystickBase = document.createElement('div');
     joystickBase.style.cssText = `
-      width: 125px;
-      height: 125px;
-      background: rgba(255, 255, 255, 0.18);
-      border: 3px solid rgba(255, 255, 255, 0.4);
+      width: 120px;
+      height: 120px;
+      background: rgba(255, 255, 255, 0.2);
+      border: 3px solid rgba(255, 255, 255, 0.45);
       border-radius: 50%;
       pointer-events: auto;
       position: relative;
@@ -204,24 +408,24 @@
 
     const joystickKnob = document.createElement('div');
     joystickKnob.style.cssText = `
-      width: 50px;
-      height: 50px;
+      width: 48px;
+      height: 48px;
       background: rgba(255, 255, 255, 0.85);
       border-radius: 50%;
       position: absolute;
-      top: 37.5px;
-      left: 37.5px;
+      top: 36px;
+      left: 36px;
       pointer-events: none;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
     `;
     joystickBase.appendChild(joystickKnob);
 
     // Kick Button
     const kickBtn = document.createElement('div');
     kickBtn.style.cssText = `
-      width: 100px;
-      height: 100px;
-      background: rgba(239, 68, 68, 0.8);
+      width: 95px;
+      height: 95px;
+      background: rgba(239, 68, 68, 0.85);
       border: 3px solid rgba(255, 255, 255, 0.7);
       border-radius: 50%;
       pointer-events: auto;
@@ -232,7 +436,7 @@
       color: white;
       font-weight: 900;
       font-family: system-ui, sans-serif;
-      font-size: 20px;
+      font-size: 18px;
       align-self: flex-end;
       box-shadow: 0 4px 15px rgba(0,0,0,0.4);
       letter-spacing: 1px;
@@ -251,7 +455,6 @@
     if (document.body) mountControls();
     else window.addEventListener('DOMContentLoaded', mountControls);
 
-    // Joystick Touch Logic
     let activeTouchId = null;
     let baseRect = null;
 
@@ -262,18 +465,17 @@
       const dx = clientX - centerX;
       const dy = clientY - centerY;
       const dist = Math.hypot(dx, dy);
-      const maxRadius = 38;
+      const maxRadius = 36;
 
       const angle = Math.atan2(dy, dx);
       const clampedDist = Math.min(dist, maxRadius);
-      const knobX = 37.5 + Math.cos(angle) * clampedDist;
-      const knobY = 37.5 + Math.sin(angle) * clampedDist;
+      const knobX = 36 + Math.cos(angle) * clampedDist;
+      const knobY = 36 + Math.sin(angle) * clampedDist;
 
       joystickKnob.style.left = `${knobX}px`;
       joystickKnob.style.top = `${knobY}px`;
 
-      // Sensitivity thresholds
-      const threshold = 12;
+      const threshold = 10;
       setMovementState('Left', dx < -threshold);
       setMovementState('Right', dx > threshold);
       setMovementState('Up', dy < -threshold);
@@ -282,8 +484,8 @@
 
     function resetJoystick() {
       activeTouchId = null;
-      joystickKnob.style.left = '37.5px';
-      joystickKnob.style.top = '37.5px';
+      joystickKnob.style.left = '36px';
+      joystickKnob.style.top = '36px';
 
       setMovementState('Left', false);
       setMovementState('Right', false);
@@ -291,7 +493,6 @@
       setMovementState('Down', false);
     }
 
-    // Touch events for Joystick
     joystickBase.addEventListener('touchstart', (e) => {
       e.preventDefault();
       const touch = e.changedTouches[0];
@@ -323,9 +524,8 @@
     window.addEventListener('touchend', endTouchHandler);
     window.addEventListener('touchcancel', endTouchHandler);
 
-    // Fallback Pointer events for desktop testing
     joystickBase.addEventListener('pointerdown', (e) => {
-      if (e.pointerType === 'touch') return; // Handled by touch events
+      if (e.pointerType === 'touch') return;
       activeTouchId = e.pointerId;
       baseRect = joystickBase.getBoundingClientRect();
       const onPointerMove = (pe) => processJoystickMove(pe.clientX, pe.clientY);
@@ -339,7 +539,6 @@
       processJoystickMove(e.clientX, e.clientY);
     });
 
-    // Kick Button Handlers
     const pressKick = (e) => {
       if (e) e.preventDefault();
       setMovementState('Kick', true);
@@ -351,7 +550,7 @@
       if (e) e.preventDefault();
       setMovementState('Kick', false);
       kickBtn.style.transform = 'scale(1)';
-      kickBtn.style.background = 'rgba(239, 68, 68, 0.8)';
+      kickBtn.style.background = 'rgba(239, 68, 68, 0.85)';
     };
 
     kickBtn.addEventListener('touchstart', pressKick, { passive: false });
@@ -361,7 +560,7 @@
     kickBtn.addEventListener('pointerup', releaseKick);
   }
 
-  // --- 4. /MOD MENU CREATION ---
+  // --- 5. /MOD MENU CREATION ---
   function createModMenu() {
     if (document.getElementById('hax-mod-menu')) return;
 
@@ -477,7 +676,6 @@
     }
   }
 
-  // Intercept Chat for /mod Command
   window.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       const input = document.querySelector('input[type="text"]');
@@ -490,7 +688,6 @@
     }
   }, true);
 
-  // Floating trigger button in top left to open menu on mobile easily
   function createMenuButton() {
     const btn = document.createElement('div');
     btn.innerText = "⚙️ MOD";
@@ -519,7 +716,7 @@
     else window.addEventListener('DOMContentLoaded', mountBtn);
   }
 
-  // --- 5. CANVAS RENDERING HOOK FOR CUSTOM TEXTURES ---
+  // --- 6. CANVAS RENDERING HOOK FOR CUSTOM TEXTURES ---
   function hookCanvasRendering() {
     const HTMLCanvasElementProto = HTMLCanvasElement.prototype;
     const originalGetContext = HTMLCanvasElementProto.getContext;
@@ -567,7 +764,8 @@
     };
   }
 
-  // Initialize
+  // Initialize all features
+  injectMobileUIStyles();
   hookCanvasRendering();
   createVirtualControls();
   createModMenu();
