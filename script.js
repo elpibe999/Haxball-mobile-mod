@@ -1,6 +1,6 @@
 /**
  * InjecThor Native Mobile Emulator + Haxball Custom Photo Mod
- * Mobile UI Centering, Native Menu Centering, Settings > Input HUD Integration
+ * Desktop Layout Preserved + Mobile Touch HUD
  * Author: Kartt
  */
 
@@ -43,233 +43,44 @@
   const modState = {
     ballImage: null,
     defaultPlayerImg: null,
-    fpsBoost: true,
     isHudEditMode: false
   };
 
-  // --- 2. GLOBAL CSS STYLES (FULLSCREEN BACKGROUND, CENTERING & CAPTCHA FIX) ---
-  function injectMobileUIStyles() {
-    if (document.getElementById('hax-mobile-responsive-styles')) return;
+  // --- 2. ESSENTIAL TOUCH & VIEWPORT FIXES (PC LAYOUT PRESERVED) ---
+  function injectEssentialTouchStyles() {
+    if (document.getElementById('hax-touch-essential-styles')) return;
 
     const style = document.createElement('style');
-    style.id = 'hax-mobile-responsive-styles';
+    style.id = 'hax-touch-essential-styles';
     style.innerHTML = `
-      /* Dark Gray Fullscreen Background */
+      /* Prevent unwanted zoom/scrolling while preserving native desktop layout */
       html, body {
-        background-color: #1a1d24 !important;
-        color: #e2e8f0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: hidden !important;
         touch-action: none !important;
         user-select: none !important;
         -webkit-user-select: none !important;
-        width: 100vw !important;
-        height: 100vh !important;
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        font-family: system-ui, -apple-system, sans-serif !important;
+        -webkit-touch-callout: none !important;
       }
 
-      /* Enable text selection inside input fields */
+      /* Keep input fields selectable on mobile */
       input, textarea, select {
         user-select: text !important;
         -webkit-user-select: text !important;
-        font-size: 14px !important;
       }
 
-      /* Main container wrapper sizing */
-      body > div, .game-frame, .dialog, .box, .window, [class*="game-"], [class*="dialog"], [class*="view"] {
-        box-sizing: border-box !important;
-      }
-
-      /* --- HAXBALL NATIVE HEADER & TOP MENU CENTERING FIX --- */
-      header, .header, [class*="header"], nav, .nav, [class*="nav"] {
-        position: fixed !important;
-        top: 0 !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        width: auto !important;
+      /* Captcha dialog safety overlay */
+      iframe[src*="recaptcha"], .g-recaptcha {
         max-width: 100vw !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        z-index: 999999 !important;
-        margin: 0 auto !important;
-        text-align: center !important;
-      }
-
-      /* Top Menu Links / Buttons Alignment */
-      header a, header button, .header a, .header button, nav a, nav button {
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 13px !important;
-        padding: 6px 10px !important;
-        white-space: nowrap !important;
-      }
-
-      /* --- NICKNAME / LOGIN SCREEN --- */
-      .nickname-view, [class*="nickname"] {
-        position: fixed !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        width: 90vw !important;
-        max-width: 360px !important;
-        padding: 24px !important;
-        background: #242832 !important;
-        border: 1px solid #333947 !important;
-        border-radius: 14px !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.7) !important;
-        z-index: 1000 !important;
-      }
-
-      .nickname-view input, [class*="nickname"] input {
-        width: 100% !important;
-        height: 44px !important;
-        font-size: 16px !important;
-        margin-bottom: 12px !important;
-        padding: 8px 14px !important;
-        border-radius: 8px !important;
-        background: #14161d !important;
-        color: #fff !important;
-        border: 1px solid #3b4252 !important;
-      }
-
-      .nickname-view button, [class*="nickname"] button {
-        width: 100% !important;
-        height: 46px !important;
-        font-size: 16px !important;
-        font-weight: bold !important;
-        border-radius: 8px !important;
-        background: #3b82f6 !important;
-        color: white !important;
-        border: none !important;
-      }
-
-      /* --- ROOM LIST / SERVER MENU --- */
-      .roomlist-view, [class*="roomlist"] {
-        position: fixed !important;
-        top: 52% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        width: 94vw !important;
-        height: 82vh !important;
-        max-width: 720px !important;
-        background: #242832 !important;
-        border: 1px solid #333947 !important;
-        border-radius: 12px !important;
-        padding: 12px !important;
-        display: flex !important;
-        flex-direction: column !important;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.6) !important;
-        z-index: 1000 !important;
-      }
-
-      .roomlist-view table, [class*="roomlist"] table {
-        width: 100% !important;
-        font-size: 13px !important;
-      }
-
-      .roomlist-view button, [class*="roomlist"] button {
-        min-height: 40px !important;
-        font-size: 13px !important;
-        font-weight: bold !important;
-        border-radius: 8px !important;
-      }
-
-      /* --- CREATE ROOM MODAL --- */
-      .create-room-view, [class*="create-room"], [class*="createRoom"] {
-        position: fixed !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        width: 90vw !important;
-        max-width: 380px !important;
-        background: #242832 !important;
-        padding: 16px !important;
-        border: 1px solid #333947 !important;
-        border-radius: 12px !important;
-        z-index: 1001 !important;
-      }
-
-      /* --- RECAPTCHA / CAPTCHA DIALOG CENTERING FIX --- */
-      iframe[src*="recaptcha"], .g-recaptcha, [class*="recaptcha"], [class*="captcha"], .dialog[class*="captcha"] {
-        position: fixed !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        margin: auto !important;
         z-index: 99999999 !important;
-        max-width: 95vw !important;
       }
 
-      div:has(> iframe[src*="recaptcha"]), div:has(> .g-recaptcha) {
-        position: fixed !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        z-index: 99999999 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-      }
-
-      /* --- IN-ROOM LOBBY & GAME VIEW --- */
-      .room-view, [class*="room-view"] {
-        position: fixed !important;
-        top: 52% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        width: 96vw !important;
-        height: 88vh !important;
-        max-width: 900px !important;
-        background: #242832 !important;
-        border: 1px solid #333947 !important;
-        border-radius: 12px !important;
-        padding: 8px !important;
-        display: flex !important;
-        flex-direction: column !important;
-        z-index: 500 !important;
-      }
-
-      /* --- GAME CANVAS CONTAINER --- */
-      .game-view, [class*="game-view"] {
-        position: fixed !important;
-        inset: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        z-index: 10 !important;
-        background: transparent !important;
-      }
-
-      canvas {
-        display: block !important;
-        max-width: 100vw !important;
-        max-height: 100vh !important;
-        object-fit: contain !important;
-        margin: auto !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-      }
-
-      /* --- CREDITS TAG (HIDDEN DURING LOGIN) --- */
+      /* Credits Tag */
       .kartt-credit-tag {
         position: fixed !important;
         bottom: 8px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         color: #94a3b8 !important;
-        font-size: 12px !important;
+        font-size: 11px !important;
         font-weight: 800 !important;
         letter-spacing: 0.8px !important;
         z-index: 9999999 !important;
@@ -286,7 +97,7 @@
     document.head.appendChild(style);
   }
 
-  // Persistent credits text (Hidden during login screen)
+  // Persistent credits text
   function injectAlwaysVisibleCredits() {
     if (document.getElementById('kartt-global-credit')) return;
     const credit = document.createElement('div');
@@ -303,22 +114,7 @@
     else window.addEventListener('DOMContentLoaded', mountCredit);
   }
 
-  // Visibility manager for credits tag (Hides when on login screen)
-  function updateCreditsVisibility() {
-    const creditEl = document.getElementById('kartt-global-credit');
-    if (!creditEl) return;
-
-    const isLoginScreen = !!(document.querySelector('.nickname-view') || document.querySelector('[class*="nickname"]'));
-    if (isLoginScreen) {
-      creditEl.style.display = 'none';
-    } else {
-      creditEl.style.display = 'block';
-    }
-  }
-
-  setInterval(updateCreditsVisibility, 300);
-
-  // --- 3. VIXEL MOBILE SPOOFING ---
+  // --- 3. VIXEL MOBILE SPOOFING & TOUCH ADAPTATION ---
   function applyMobileEmulation(targetWindow) {
     if (!targetWindow) return;
 
@@ -360,14 +156,6 @@
       try {
         if (iframe.contentWindow) {
           applyMobileEmulation(iframe.contentWindow);
-          if (iframe.contentDocument && iframe.contentDocument.head) {
-            if (!iframe.contentDocument.getElementById('hax-mobile-responsive-styles')) {
-              const style = iframe.contentDocument.createElement('style');
-              style.id = 'hax-mobile-responsive-styles';
-              style.innerHTML = document.getElementById('hax-mobile-responsive-styles')?.innerHTML || '';
-              iframe.contentDocument.head.appendChild(style);
-            }
-          }
         }
       } catch (e) {}
     });
@@ -733,40 +521,14 @@
           cursor: pointer;
         ">Move HUD Buttons (Drag Mode)</button>
 
-        <div style="display:flex; justify-space-between; align-items:center; margin-bottom:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <span style="font-size:12px; color:#cbd5e1;">Joystick Size</span>
           <input type="range" id="joystick-size-slider" min="80" max="180" value="${userSettings.joystickSize}" style="width:120px;" />
         </div>
 
-        <div style="display:flex; justify-space-between; align-items:center; margin-bottom:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <span style="font-size:12px; color:#cbd5e1;">Kick Button Size</span>
           <input type="range" id="kick-size-slider" min="60" max="140" value="${userSettings.kickSize}" style="width:120px;" />
-        </div>
-
-        <div style="border-top:1px solid #2d3342; padding-top:8px; margin-top:8px;">
-          <span style="font-size:12px; font-weight:bold; color:#cbd5e1; display:block; margin-bottom:6px;">⌨️ Key Overrides</span>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:11px;">
-            <div>
-              <span style="color:#a1a1aa;">Kick Key:</span>
-              <input type="text" id="key-kick-input" value="${userSettings.keyKick}" style="width:100%; background:#1e222b; color:#fff; border:1px solid #333947; padding:4px; border-radius:4px;" />
-            </div>
-            <div>
-              <span style="color:#a1a1aa;">Up Key:</span>
-              <input type="text" id="key-up-input" value="${userSettings.keyUp}" style="width:100%; background:#1e222b; color:#fff; border:1px solid #333947; padding:4px; border-radius:4px;" />
-            </div>
-            <div>
-              <span style="color:#a1a1aa;">Down Key:</span>
-              <input type="text" id="key-down-input" value="${userSettings.keyDown}" style="width:100%; background:#1e222b; color:#fff; border:1px solid #333947; padding:4px; border-radius:4px;" />
-            </div>
-            <div>
-              <span style="color:#a1a1aa;">Left Key:</span>
-              <input type="text" id="key-left-input" value="${userSettings.keyLeft}" style="width:100%; background:#1e222b; color:#fff; border:1px solid #333947; padding:4px; border-radius:4px;" />
-            </div>
-            <div>
-              <span style="color:#a1a1aa;">Right Key:</span>
-              <input type="text" id="key-right-input" value="${userSettings.keyRight}" style="width:100%; background:#1e222b; color:#fff; border:1px solid #333947; padding:4px; border-radius:4px;" />
-            </div>
-          </div>
         </div>
       `;
 
@@ -809,22 +571,6 @@
         }
         saveSettings(userSettings);
       });
-
-      const bindInput = (id, keyName) => {
-        const el = hudPanel.querySelector('#' + id);
-        if (el) {
-          el.addEventListener('change', (e) => {
-            userSettings[keyName] = e.target.value.trim();
-            saveSettings(userSettings);
-          });
-        }
-      };
-
-      bindInput('key-kick-input', 'keyKick');
-      bindInput('key-up-input', 'keyUp');
-      bindInput('key-down-input', 'keyDown');
-      bindInput('key-left-input', 'keyLeft');
-      bindInput('key-right-input', 'keyRight');
     });
   }
 
@@ -851,7 +597,7 @@
         display: none;
         width: 290px;
       ">
-        <div style="display:flex; justify-space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #2d3342; padding-bottom:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #2d3342; padding-bottom:8px;">
           <h3 style="margin:0; font-size:16px; color:#3b82f6;">🖼️ Custom Photo Customizer</h3>
           <span id="close-mod-menu" style="cursor:pointer; font-weight:bold; color:#94a3b8; font-size:20px;">✕</span>
         </div>
@@ -937,25 +683,13 @@
     }
   }
 
-  window.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      const input = document.querySelector('input[type="text"]');
-      if (input && input.value.trim() === '/mod') {
-        e.preventDefault();
-        e.stopPropagation();
-        input.value = '';
-        toggleMenu();
-      }
-    }
-  }, true);
-
-  // FLOATING MOD BUTTON (Repositioned to avoid overlapping top navigation bar)
+  // FLOATING MOD BUTTON
   function createMenuButton() {
     const btn = document.createElement('div');
     btn.innerText = "⚙️ MOD";
     btn.style.cssText = `
       position: fixed;
-      top: 4px;
+      top: 6px;
       right: 12px;
       background: rgba(30, 34, 43, 0.95);
       color: #38bdf8;
@@ -1023,7 +757,7 @@
   }
 
   // Initialize all features
-  injectMobileUIStyles();
+  injectEssentialTouchStyles();
   injectAlwaysVisibleCredits();
   hookCanvasRendering();
   createVirtualControls();
