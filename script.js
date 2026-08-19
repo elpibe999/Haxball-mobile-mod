@@ -84,20 +84,30 @@
         box-sizing: border-box !important;
       }
 
-      /* --- HAXBALL NATIVE MENU & HEADER CENTERING FIX --- */
-      .header, .nav, .menu, .top-bar, [class*="header"], [class*="nav"], [class*="menu"], [class*="top-bar"] {
+      /* --- HAXBALL NATIVE HEADER & TOP MENU CENTERING FIX --- */
+      header, .header, [class*="header"], nav, .nav, [class*="nav"] {
+        position: fixed !important;
+        top: 0 !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: auto !important;
+        max-width: 100vw !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
+        z-index: 999999 !important;
+        margin: 0 auto !important;
         text-align: center !important;
       }
 
-      /* Native Menu Action Buttons Centering */
-      .header button, .nav button, .menu button, [class*="header"] button, [class*="nav"] button, [class*="menu"] button {
-        margin: 0 4px !important;
-        align-self: center !important;
+      /* Top Menu Links / Buttons Alignment */
+      header a, header button, .header a, .header button, nav a, nav button {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 13px !important;
+        padding: 6px 10px !important;
+        white-space: nowrap !important;
       }
 
       /* --- NICKNAME / LOGIN SCREEN --- */
@@ -146,11 +156,11 @@
       /* --- ROOM LIST / SERVER MENU --- */
       .roomlist-view, [class*="roomlist"] {
         position: fixed !important;
-        top: 50% !important;
+        top: 52% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) !important;
         width: 94vw !important;
-        height: 85vh !important;
+        height: 82vh !important;
         max-width: 720px !important;
         background: #242832 !important;
         border: 1px solid #333947 !important;
@@ -214,11 +224,11 @@
       /* --- IN-ROOM LOBBY & GAME VIEW --- */
       .room-view, [class*="room-view"] {
         position: fixed !important;
-        top: 50% !important;
+        top: 52% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) !important;
         width: 96vw !important;
-        height: 92vh !important;
+        height: 88vh !important;
         max-width: 900px !important;
         background: #242832 !important;
         border: 1px solid #333947 !important;
@@ -939,21 +949,20 @@
     }
   }, true);
 
-  // TOP-CENTER FLOATING MOD BUTTON
+  // FLOATING MOD BUTTON (Repositioned to avoid overlapping top navigation bar)
   function createMenuButton() {
     const btn = document.createElement('div');
     btn.innerText = "⚙️ MOD";
     btn.style.cssText = `
       position: fixed;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(30, 34, 43, 0.9);
+      top: 4px;
+      right: 12px;
+      background: rgba(30, 34, 43, 0.95);
       color: #38bdf8;
       border: 1px solid #333947;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-size: 11px;
       font-weight: bold;
       z-index: 9999999;
       pointer-events: auto;
